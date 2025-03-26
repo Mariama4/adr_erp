@@ -8,6 +8,7 @@ app_email = "mariama4@mail.ru"
 app_license = "mit"
 source_link = "https://github.com/Mariama4/adr_erp"
 app_logo_url = "/assets/adr_erp/images/logo.svg"
+# workspace
 app_home = "/app/home"
 
 # Apps
