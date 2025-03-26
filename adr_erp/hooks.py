@@ -2,8 +2,13 @@ app_name = "adr_erp"
 app_title = "ADR ERP"
 app_publisher = "GeorgyTaskabulov"
 app_description = "ADR ERP system"
+app_icon = "fa-solid fa-money-bill-transfer"
+app_color = "#e74c3c"
 app_email = "mariama4@mail.ru"
 app_license = "mit"
+source_link = "https://github.com/Mariama4/adr_erp"
+app_logo_url = "/assets/adr_erp/images/logo.svg"
+app_home = "/app/home"
 
 # Apps
 # ------------------
@@ -11,15 +16,15 @@ app_license = "mit"
 # required_apps = []
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "adr_erp",
-# 		"logo": "/assets/adr_erp/logo.png",
-# 		"title": "ADR ERP",
-# 		"route": "/adr_erp",
-# 		"has_permission": "adr_erp.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+    {
+        "name": app_name,
+        "logo": app_logo_url,
+        "title": app_title,
+        "route": app_home,
+        # "has_permission": "adr_erp.check_app_permission",
+    }
+]
 
 # Includes in <head>
 # ------------------
@@ -236,4 +241,3 @@ app_license = "mit"
 # default_log_clearing_doctypes = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
-
