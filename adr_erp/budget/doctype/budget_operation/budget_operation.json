@@ -1,0 +1,84 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "autoincrement",
+ "creation": "2025-03-28 00:26:13.414940",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "datetime",
+  "type",
+  "organization_bank_setting",
+  "sum",
+  "expense_item",
+  "description",
+  "comment"
+ ],
+ "fields": [
+  {
+   "fieldname": "organization_bank_setting",
+   "fieldtype": "Link",
+   "label": "Organization-Bank Setting",
+   "options": "Organization-Bank Settings"
+  },
+  {
+   "fieldname": "sum",
+   "fieldtype": "Currency",
+   "label": "Sum"
+  },
+  {
+   "fieldname": "expense_item",
+   "fieldtype": "Link",
+   "label": "Expense item",
+   "options": "Expense item"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "comment",
+   "fieldtype": "Text",
+   "label": "Comment"
+  },
+  {
+   "fieldname": "datetime",
+   "fieldtype": "Datetime",
+   "label": "Datetime"
+  },
+  {
+   "fieldname": "type",
+   "fieldtype": "Select",
+   "label": "Type",
+   "options": "Plan\nFact"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-03-28 00:38:34.766635",
+ "modified_by": "Administrator",
+ "module": "Budget",
+ "name": "Budget operation",
+ "naming_rule": "Autoincrement",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
