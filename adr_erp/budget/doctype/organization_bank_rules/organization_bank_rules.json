@@ -40,7 +40,7 @@
  "modified": "2025-03-28 00:23:19.327863",
  "modified_by": "Administrator",
  "module": "Budget",
- "name": "Organization-Bank Settings",
+ "name": "Organization-Bank Rules",
  "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [

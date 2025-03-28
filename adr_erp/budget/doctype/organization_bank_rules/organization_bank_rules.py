@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class OrganizationBankSettings(Document):
+class OrganizationBankRules(Document):
 	pass

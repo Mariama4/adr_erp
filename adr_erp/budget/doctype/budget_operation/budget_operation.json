@@ -8,19 +8,13 @@
  "field_order": [
   "datetime",
   "type",
-  "organization_bank_setting",
+  "organization_bank_rule",
   "sum",
   "expense_item",
   "description",
   "comment"
  ],
  "fields": [
-  {
-   "fieldname": "organization_bank_setting",
-   "fieldtype": "Link",
-   "label": "Organization-Bank Setting",
-   "options": "Organization-Bank Settings"
-  },
   {
    "fieldname": "sum",
    "fieldtype": "Currency",
@@ -52,12 +46,18 @@
    "fieldtype": "Select",
    "label": "Type",
    "options": "Plan\nFact"
+  },
+  {
+   "fieldname": "organization_bank_rule",
+   "fieldtype": "Link",
+   "label": "Organization-Bank Rule",
+   "options": "Organization-Bank Rules"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-28 00:38:34.766635",
+ "modified": "2025-03-28 11:48:08.605503",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Budget operation",
