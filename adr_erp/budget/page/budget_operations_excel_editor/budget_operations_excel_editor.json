@@ -1,0 +1,19 @@
+{
+ "content": null,
+ "creation": "2025-03-28 12:15:26.457206",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-03-28 12:15:26.457206",
+ "modified_by": "Administrator",
+ "module": "Budget",
+ "name": "budget-operations-excel-editor",
+ "owner": "Administrator",
+ "page_name": "budget-operations-excel-editor",
+ "roles": [],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 1,
+ "title": "Budget planning (Excel)"
+}

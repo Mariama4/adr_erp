@@ -8,14 +8,14 @@
  "field_order": [
   "organization",
   "bank",
-  "use"
+  "is_active"
  ],
  "fields": [
   {
    "fieldname": "organization",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "organization",
+   "label": "Organization",
    "options": "Organization",
    "reqd": 1
   },
@@ -23,21 +23,21 @@
    "fieldname": "bank",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "bank",
+   "label": "Bank",
    "options": "Bank",
    "reqd": 1
   },
   {
    "default": "0",
-   "fieldname": "use",
+   "fieldname": "is_active",
    "fieldtype": "Check",
-   "label": "use"
+   "label": "Is_active"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-28 00:23:19.327863",
+ "modified": "2025-03-28 11:57:05.997719",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Organization-Bank Rules",
