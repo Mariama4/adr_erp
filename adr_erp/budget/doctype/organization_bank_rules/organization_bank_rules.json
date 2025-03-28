@@ -31,13 +31,13 @@
    "default": "0",
    "fieldname": "is_active",
    "fieldtype": "Check",
-   "label": "Is_active"
+   "label": "Is active"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-28 11:57:05.997719",
+ "modified": "2025-03-28 14:37:47.137523",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Organization-Bank Rules",

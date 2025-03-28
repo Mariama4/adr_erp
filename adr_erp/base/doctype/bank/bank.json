@@ -22,13 +22,13 @@
    "default": "0",
    "fieldname": "is_active",
    "fieldtype": "Check",
-   "label": "Is_active"
+   "label": "Is active"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-28 11:56:47.226209",
+ "modified": "2025-03-28 14:35:45.910088",
  "modified_by": "Administrator",
  "module": "base",
  "name": "Bank",

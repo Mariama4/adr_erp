@@ -1,16 +1,17 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "autoincrement",
+ "autoname": "format:{date} {type} {organization_bank_rule} {recipient_of_transit_payment} {expense_item} {sum}",
  "creation": "2025-03-28 00:26:13.414940",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "datetime",
+  "date",
   "type",
   "organization_bank_rule",
   "sum",
   "expense_item",
+  "recipient_of_transit_payment",
   "description",
   "comment"
  ],
@@ -37,31 +38,37 @@
    "label": "Comment"
   },
   {
-   "fieldname": "datetime",
-   "fieldtype": "Datetime",
-   "label": "Datetime"
-  },
-  {
    "fieldname": "type",
    "fieldtype": "Select",
    "label": "Type",
-   "options": "Plan\nFact"
+   "options": "\u041f\u043b\u0430\u043d\n\u0424\u0430\u043a\u0442"
   },
   {
    "fieldname": "organization_bank_rule",
    "fieldtype": "Link",
    "label": "Organization-Bank Rule",
    "options": "Organization-Bank Rules"
+  },
+  {
+   "fieldname": "recipient_of_transit_payment",
+   "fieldtype": "Link",
+   "label": "Recipient of transit payment (Organization-Bank Rule)",
+   "options": "Organization-Bank Rules"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "label": "Date"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-28 11:48:08.605503",
+ "modified": "2025-03-28 14:59:11.153762",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Budget operation",
- "naming_rule": "Autoincrement",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {

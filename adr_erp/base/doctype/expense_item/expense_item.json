@@ -6,7 +6,8 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "expense_item_name"
+  "expense_item_name",
+  "is_active"
  ],
  "fields": [
   {
@@ -16,14 +17,20 @@
    "label": "Expense item name",
    "reqd": 1,
    "unique": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "label": "Is active"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-27 23:15:19.363534",
+ "modified": "2025-03-28 16:15:12.811106",
  "modified_by": "Administrator",
- "module": "Base",
+ "module": "base",
  "name": "Expense item",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
