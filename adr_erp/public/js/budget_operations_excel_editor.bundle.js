@@ -4,11 +4,12 @@ import "handsontable/styles/ht-theme-main.min.css";
 
 const container = document.querySelector('.budget_operations_excel_editor_table');
 
-// Сформировать заголовки
+window.hotInstance = null;
 
-frappe.call('adr_erp.budget.budget_api.get_budget_plannig_data_for_handsontable')
+function setup_excel_editor_table(organization_bank_rule_name) {
+	frappe.call('adr_erp.budget.budget_api.get_budget_plannig_data_for_handsontable', args={'organization_bank_rule_name': organization_bank_rule_name})
  .then(r => {
-  
+
   const hiddenColumnsIndices = r.message.colHeaders.reduce((acc, header, index) => {
     if (header.includes("Комментарий")) {
       acc.push(index);
@@ -22,7 +23,7 @@ frappe.call('adr_erp.budget.budget_api.get_budget_plannig_data_for_handsontable'
     let startRow = 0;
     let currentDate = data[0][0];
     let rowspan = 1;
-    
+
     for (let i = 1; i < data.length; i++) {
       if (data[i][0] === currentDate) {
         rowspan++;
@@ -43,29 +44,27 @@ frappe.call('adr_erp.budget.budget_api.get_budget_plannig_data_for_handsontable'
     }
     return mergeCells;
   }
-  
+
   // Вычисляем конфигурацию объединения ячеек для данных
   const mergeCellsConfig = getMergeCellsConfig(r.message.data);
 
-  const hot = new Handsontable(container, {
+  if (window.hotInstance) {
+  	window.hotInstance.destroy();
+  }
+
+  window.hotInstance = new Handsontable(container, {
     data: r.message.data,
-    startRows: 200,
-    startCols: r.message.colHeaders.length,
-    autoWrapRow: true,
-    autoWrapCol: true,
-    nestedRows: true,
-    // columns: [
-    //   { data: 'id', type: 'numeric' },
-    //   { data: 'name', type: 'text' }
-    // ],
+    columns: r.message.columns,
+	fixedColumnsStart: 2,
+	colWidths: [105, 50].concat(Array.from({ length: r.message.columns.length - 2 }, (_, i) => [100, 150, 150][i % 3])),
     colHeaders: r.message.colHeaders,
     mergeCells: mergeCellsConfig,
     width: container.width, // Устанавливаем ширину контейнера
     height: container.height, // Устанавливаем высоту контейнера
-    licenseKey: 'non-commercial-and-evaluation',
+	contextMenu: true,
     hiddenColumns: {
       columns: hiddenColumnsIndices,
-      indicators: false // не отображать индикаторы скрытых колонок
+      indicators: true // не отображать индикаторы скрытых колонок
     },
     afterGetColHeader: function(col, TH) {
       if (col >= 0) {
@@ -80,6 +79,10 @@ frappe.call('adr_erp.budget.budget_api.get_budget_plannig_data_for_handsontable'
           TH.style.backgroundColor = '#d3d3d3';
         }
       }
-    }
+    },
+	licenseKey: 'non-commercial-and-evaluation',
   });
  })
+}
+
+window.setup_excel_editor_table = setup_excel_editor_table;
