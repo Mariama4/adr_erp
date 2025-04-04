@@ -5,16 +5,25 @@ import frappe
 def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
 	from datetime import date, timedelta
 
+	# Функция для создания пустой строки с заданной датой и типом
+	def create_empty_row(date_str, type_str):
+		row = list('' for _ in colHeaders)
+		row[0] = date_str
+		row[1] = type_str
+		return row
+
 	data = []
 	colHeaders = []
 	columns = []
+
+	org_bank_rules = frappe.get_list("Organization-Bank Rules", filters={"is_active": True}, order_by='creation asc')
+	org_bank_rules_names = [item.name for item in org_bank_rules]
 
 	# Получаем документ с настройками и список Expense Items
 	org_bank_rule_doc = frappe.get_doc("Organization-Bank Rules", organization_bank_rule_name)
 	organization_bank_rules = org_bank_rule_doc.available_expense_items
 	expense_items = []
 	for item in organization_bank_rules:
-		# Здесь замените "link_expense_item" на нужное вам имя поля, если требуется
 		expense_items.append(item.get("link_expense_item"))
 
 	# Первые колонки: Дата и Тип
@@ -39,8 +48,6 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
 	# Для каждого expense item добавляем 3 колонки: значение, описание и комментарий
 	for item_name in expense_items:
 		colHeaders.append(item_name)
-		colHeaders.append(f"{item_name} Описание")
-		colHeaders.append(f"{item_name} Комментарий")
 
 		columns.append({
 			"field": f"{item_name}",
@@ -48,6 +55,19 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
 			"type": "numeric",
 			"allowInvalid": False,
 		})
+
+		if frappe.get_doc("Expense item", item_name).is_transit:
+			colHeaders.append(f"{item_name} Транзит")
+			columns.append({
+				"field": f"{item_name}_transit",
+				"label": f"{item_name} transit",
+				"type": "dropdown",
+				"source": org_bank_rules_names,
+			})
+
+		colHeaders.append(f"{item_name} Описание")
+		colHeaders.append(f"{item_name} Комментарий")
+
 		columns.append({
 			"field": f"{item_name}_description",
 			"label": f"{item_name} Description",
@@ -61,8 +81,8 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
 
 	# Определяем диапазон дат: от 15 дней до текущей даты до 15 дней после
 	current_date = date.today()
-	start_date = current_date - timedelta(days=7)
-	end_date = current_date + timedelta(days=7)
+	start_date = current_date - timedelta(days=15)
+	end_date = current_date + timedelta(days=15)
 
 	# Список дат в формате YYYY-MM-DD
 	date_range = []
@@ -87,27 +107,37 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
 		]
 	)
 
+	# format data
+	for budget_operation in budget_operations:
+		budget_operation['date'] = budget_operation['date'].strftime("%Y-%m-%d")
+		budget_operation['expense_item'] = budget_operation['expense_item'] if budget_operation['expense_item'] else ""
+		budget_operation['description'] = budget_operation['description'] if budget_operation['description'] else ""
+		budget_operation['comment'] = budget_operation['comment'] if budget_operation['comment'] else ""
+		budget_operation['recipient_of_transit_payment'] = budget_operation['recipient_of_transit_payment'] if budget_operation['recipient_of_transit_payment'] else ""
+
+	# Теперь нужно преобразовать данные согласно колонкам
+	for idx, value in enumerate(budget_operations):
+		budget_operations[idx] = create_empty_row(value['date'], value['type'])
+		if value['expense_item'] in colHeaders:
+			budget_operations[idx][colHeaders.index(value['expense_item'])] = value['sum']
+			if f"{value['expense_item']} Транзит" in colHeaders:
+				budget_operations[idx][colHeaders.index(f"{value['expense_item']} Транзит")] = value['recipient_of_transit_payment']
+
 	# Группируем операции по дате
 	operations_by_date = {}
 	for op in budget_operations:
-		op_date = op.get("date")
+		op_date = op[0]
+		# print(op_date, operations_by_date)
 		if op_date not in operations_by_date:
 			operations_by_date[op_date] = []
 		operations_by_date[op_date].append(op)
-
-	# Функция для создания пустой строки с заданной датой и типом
-	def create_empty_row(date_str, type_str):
-		row = list('' for _ in colHeaders)
-		row[0] = date_str
-		row[1] = type_str
-		return row
-
+		
 	# Формируем итоговую матрицу данных
 	for d in date_range:
 		ops = operations_by_date.get(d, [])
 		# Разбиваем найденные операции по типу
-		plan_ops = [op for op in ops if op.get("type") == "План"]
-		fact_ops = [op for op in ops if op.get("type") == "Факт"]
+		plan_ops = [op for op in ops if op[1] == "План"]
+		fact_ops = [op for op in ops if op[1] == "Факт"]
 
 		# Если для даты отсутствует операция типа "План", добавляем пустую строку
 		if not plan_ops:

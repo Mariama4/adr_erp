@@ -29,7 +29,8 @@ PageContent = Class.extend(
 				fields: [],
 				filters: {
 				  is_active: true
-				}
+				},
+				order_by: "creation asc",
 			   }).then(records => {
 				let organization_bank_rules_select = [];
 				for (let record of records) {

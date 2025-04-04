@@ -3,6 +3,10 @@ import "handsontable/styles/handsontable.min.css";
 import "handsontable/styles/ht-theme-main.min.css";
 
 const container = document.querySelector('.budget_operations_excel_editor_table');
+const main_section = document.querySelector("body > div.main-section");
+const sticky_top = document.querySelector("body > div.main-section > div.sticky-top");
+const body = document.querySelector("#body");
+
 
 window.hotInstance = null;
 
@@ -55,13 +59,17 @@ function setup_excel_editor_table(organization_bank_rule_name) {
   window.hotInstance = new Handsontable(container, {
     data: r.message.data,
     columns: r.message.columns,
-	fixedColumnsStart: 2,
-	colWidths: [105, 50].concat(Array.from({ length: r.message.columns.length - 2 }, (_, i) => [100, 150, 150][i % 3])),
+	  fixedColumnsStart: 2,
+    rowHeaders: true,
+    colHeaders: true,
+    autoWrapRow: true,
+    autoWrapCol: true,
+	  colWidths: [105, 50].concat(Array.from({ length: r.message.columns.length - 2 }, (_, i) => [100, 150, 150][i % 3])),
     colHeaders: r.message.colHeaders,
     mergeCells: mergeCellsConfig,
     width: container.width, // Устанавливаем ширину контейнера
-    height: container.height, // Устанавливаем высоту контейнера
-	contextMenu: true,
+    height: main_section.clientHeight - sticky_top.clientHeight - body.clientHeight, // Устанавливаем высоту контейнера
+	  contextMenu: true,
     hiddenColumns: {
       columns: hiddenColumnsIndices,
       indicators: true // не отображать индикаторы скрытых колонок
@@ -82,6 +90,21 @@ function setup_excel_editor_table(organization_bank_rule_name) {
     },
 	licenseKey: 'non-commercial-and-evaluation',
   });
+  
+
+  let date = new Date();
+
+  let year = date.getFullYear();
+  let month = (date.getMonth() + 1).toString().padStart(2, '0');
+  let day = date.getDate().toString().padStart(2, '0');
+
+  let currentDate = `${year}-${month}-${day}`;
+  let rowIndex = window.hotInstance.getSourceData().findIndex(row => row[0] === currentDate);
+  if (rowIndex >= 0) {
+    window.hotInstance.scrollViewportTo(rowIndex);
+  } else {
+    console.log('Строка с заданным значением не найдена');
+  }
  })
 }
 
