@@ -4,6 +4,7 @@ import 'handsontable/styles/ht-theme-main.min.css';
 
 const container = document.querySelector('.budget_operations_excel_editor_table');
 const main_section = document.querySelector('body > div.main-section');
+const body_sidebar = document.querySelector('body > div.body-sidebar-container');
 const sticky_top = document.querySelector('body > div.main-section > div.sticky-top');
 const body = document.querySelector('#body');
 
@@ -77,7 +78,7 @@ function setup_excel_editor_table(organization_bank_rule_name) {
 				),
 				colHeaders: r.message.colHeaders,
 				mergeCells: mergeCellsConfig,
-				width: container.width, // Устанавливаем ширину контейнера
+				width: container.clientWidth - body_sidebar.clientWidth, // Устанавливаем ширину контейнера
 				height: main_section.clientHeight - sticky_top.clientHeight - body.clientHeight, // Устанавливаем высоту контейнера
 				contextMenu: true,
 				hiddenColumns: {
