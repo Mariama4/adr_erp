@@ -18,13 +18,13 @@ app_home = "/app/home"
 
 # Each item in the list will be shown as an app in the apps page
 add_to_apps_screen = [
-    {
-        "name": app_name,
-        "logo": app_logo_url,
-        "title": app_title,
-        "route": app_home,
-        # "has_permission": "adr_erp.check_app_permission",
-    }
+	{
+		"name": app_name,
+		"logo": app_logo_url,
+		"title": app_title,
+		"route": app_home,
+		# "has_permission": "adr_erp.check_app_permission",
+	}
 ]
 
 # Includes in <head>
