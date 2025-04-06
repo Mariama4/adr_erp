@@ -63,6 +63,22 @@ function setup_excel_editor_table(organization_bank_rule_name) {
 				window.hotInstance.destroy();
 			}
 
+			const contextMenuSettings = {
+				items: {
+					add_comment: {
+						name: __('Add comment'),
+						callback: function (key, selection, clickEvent) {
+							console.log(key, selection, clickEvent);
+							this.updateSettings({
+								hiddenColumns: {
+									columns: [],
+								},
+							});
+						},
+					},
+				},
+			};
+
 			window.hotInstance = new Handsontable(container, {
 				data: r.message.data,
 				columns: r.message.columns,
@@ -80,7 +96,7 @@ function setup_excel_editor_table(organization_bank_rule_name) {
 				mergeCells: mergeCellsConfig,
 				width: container.clientWidth - body_sidebar.clientWidth, // Устанавливаем ширину контейнера
 				height: main_section.clientHeight - sticky_top.clientHeight - body.clientHeight, // Устанавливаем высоту контейнера
-				contextMenu: true,
+				contextMenu: contextMenuSettings,
 				hiddenColumns: {
 					columns: hiddenColumnsIndices,
 					indicators: true, // не отображать индикаторы скрытых колонок
