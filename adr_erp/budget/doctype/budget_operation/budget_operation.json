@@ -7,7 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "date",
-  "type",
+  "budget_operation_type",
   "organization_bank_rule",
   "sum",
   "expense_item",
@@ -38,12 +38,6 @@
    "label": "Comment"
   },
   {
-   "fieldname": "type",
-   "fieldtype": "Select",
-   "label": "Type",
-   "options": "\u041f\u043b\u0430\u043d\n\u0424\u0430\u043a\u0442"
-  },
-  {
    "fieldname": "organization_bank_rule",
    "fieldtype": "Link",
    "label": "Organization-Bank Rule",
@@ -58,13 +52,20 @@
   {
    "fieldname": "date",
    "fieldtype": "Date",
+   "in_list_view": 1,
    "label": "Date"
+  },
+  {
+   "fieldname": "budget_operation_type",
+   "fieldtype": "Link",
+   "label": "Type",
+   "options": "Budget operation types"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-03 14:53:47.852283",
+ "modified": "2025-04-08 11:39:39.531335",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Budget operation",

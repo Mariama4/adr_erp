@@ -66,7 +66,7 @@ function setup_excel_editor_table(organization_bank_rule_name) {
 
 			const contextMenuSettings = {
 				items: {
-					add_comment: {
+					add_col_comment: {
 						name: __("Add comment"),
 						callback: function (key, selection, clickEvent) {
 							// Получаем текущий массив скрытых колонок из настроек
