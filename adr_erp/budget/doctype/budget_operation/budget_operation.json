@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "format:{date} {type} {organization_bank_rule} {recipient_of_transit_payment} {expense_item} {sum}",
+ "autoname": "format:{date} {budget_operation_type} {organization_bank_rule} {recipient_of_transit_payment} {expense_item} {sum}",
  "creation": "2025-03-28 00:26:13.414940",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -19,7 +19,8 @@
   {
    "fieldname": "sum",
    "fieldtype": "Currency",
-   "label": "Sum"
+   "label": "Sum",
+   "reqd": 1
   },
   {
    "fieldname": "expense_item",
@@ -53,19 +54,21 @@
    "fieldname": "date",
    "fieldtype": "Date",
    "in_list_view": 1,
-   "label": "Date"
+   "label": "Date",
+   "reqd": 1
   },
   {
    "fieldname": "budget_operation_type",
    "fieldtype": "Link",
    "label": "Type",
-   "options": "Budget operation types"
+   "options": "Budget operation types",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-08 11:39:39.531335",
+ "modified": "2025-04-10 23:41:15.119028",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Budget operation",

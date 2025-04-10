@@ -1,110 +1,22 @@
+from datetime import date, timedelta
+
 import frappe
+from frappe import _
 
 
-@frappe.whitelist()
-def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
-	from datetime import date, timedelta
+def get_date_range(start_date, end_date):
+	"""
+	Возвращает список дат в формате YYYY-MM-DD между start_date и end_date (включительно).
+	"""
+	num_days = (end_date - start_date).days + 1
+	return [(start_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(num_days)]
 
-	# Функция для создания пустой строки с заданной датой и типом
-	def create_empty_row(date_str, type_str):
-		row = list("" for _ in colHeaders)
-		row[0] = date_str
-		row[1] = type_str
-		return row
 
-	data = []
-	colHeaders = []
-	columns = []
-
-	org_bank_rules = frappe.get_list(
-		"Organization-Bank Rules", filters={"is_active": True}, order_by="creation asc"
-	)
-	org_bank_rules_names = [item.name for item in org_bank_rules]
-
-	# Получаем документ с настройками и список Expense Items
-	org_bank_rule_doc = frappe.get_doc("Organization-Bank Rules", organization_bank_rule_name)
-	organization_bank_rules = org_bank_rule_doc.available_expense_items
-	expense_items = []
-	for item in organization_bank_rules:
-		expense_items.append(item.get("link_expense_item"))
-
-	# Первые колонки: Дата и Тип
-	colHeaders.extend(["Дата", "Тип"])
-	columns.extend(
-		[
-			{
-				"field": "date",
-				"label": "Дата",
-				"type": "date",
-				"dateFormat": "YYYY-MM-DD",
-				"correctFormat": True,
-				"allowInvalid": False,
-			},
-			{
-				"field": "type",
-				"label": "Тип",
-				"type": "select",
-				"selectOptions": ["План", "Факт"],
-			},
-		]
-	)
-
-	# Для каждого expense item добавляем 3 колонки: значение, описание и комментарий
-	for item_name in expense_items:
-		colHeaders.append(item_name)
-
-		columns.append(
-			{
-				"field": f"{item_name}",
-				"label": f"{item_name}",
-				"type": "numeric",
-				"allowInvalid": False,
-			}
-		)
-
-		if frappe.get_doc("Expense item", item_name).is_transit:
-			colHeaders.append(f"{item_name} Транзит")
-			columns.append(
-				{
-					"field": f"{item_name}_transit",
-					"label": f"{item_name} transit",
-					"type": "dropdown",
-					"source": org_bank_rules_names,
-				}
-			)
-
-		colHeaders.append(f"{item_name} Описание")
-		colHeaders.append(f"{item_name} Комментарий")
-
-		columns.append(
-			{
-				"field": f"{item_name}_description",
-				"label": f"{item_name} Description",
-				"type": "text",
-			}
-		)
-		columns.append(
-			{
-				"field": f"{item_name}_comment",
-				"label": f"{item_name} Comment",
-				"type": "text",
-			}
-		)
-
-	# Определяем диапазон дат: от 15 дней до текущей даты до 15 дней после
-	current_date = date.today()
-	start_date = current_date - timedelta(days=15)
-	end_date = current_date + timedelta(days=15)
-
-	# Список дат в формате YYYY-MM-DD
-	date_range = []
-	d = start_date
-	while d <= end_date:
-		date_range.append(d.strftime("%Y-%m-%d"))
-		d += timedelta(days=1)
-
-	# Получаем операции по бюджету в заданном диапазоне и сортируем по дате
-	budget_operations = frappe.db.get_list(
+def fetch_budget_operations(start_date, end_date):
+	"""
+	Получает бюджетные операции с БД за указанный период и приводит данные к необходимому виду.
+	"""
+	ops = frappe.db.get_list(
 		"Budget operation",
 		filters=[
 			["date", ">=", start_date.strftime("%Y-%m-%d")],
@@ -113,7 +25,7 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
 		order_by="date asc",
 		fields=[
 			"date",
-			"type",
+			"budget_operation_type",  # исправлено: используется поле "budget_operation_type" вместо "type"
 			"organization_bank_rule",
 			"sum",
 			"expense_item",
@@ -122,61 +34,224 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
 			"comment",
 		],
 	)
+	for op in ops:
+		# Приводим дату к строковому формату
+		op["date"] = op["date"].strftime("%Y-%m-%d")
+		# Если поле пустое, заменяем на пустую строку
+		for field in ("expense_item", "description", "comment", "recipient_of_transit_payment"):
+			op[field] = op.get(field) or ""
+	return ops
 
-	# format data
-	for budget_operation in budget_operations:
-		budget_operation["date"] = budget_operation["date"].strftime("%Y-%m-%d")
-		budget_operation["expense_item"] = (
-			budget_operation["expense_item"] if budget_operation["expense_item"] else ""
+
+def get_operation_types():
+	"""
+	Получает список названий типов бюджетных операций в отсортированном порядке.
+	"""
+	op_types = frappe.get_list("Budget operation types", fields=["type_name"], order_by="priority asc")
+	return [op["type_name"] for op in op_types]
+
+
+def get_bank_rules():
+	"""
+	Возвращает список имён правил для банка (Organization-Bank Rules).
+	"""
+	bank_rules = frappe.get_list("Organization-Bank Rules", fields=["name"], order_by="creation asc")
+	return [br["name"] for br in bank_rules]
+
+
+def get_available_expense_items(org_bank_rule_name):
+	"""
+	Получает список доступных expense item'ов из документа Organization-Bank Rules.
+	"""
+	doc = frappe.get_doc("Organization-Bank Rules", org_bank_rule_name)
+	available_items = []
+	for item in doc.available_expense_items:
+		link = item.get("link_expense_item")
+		expense_doc = frappe.get_doc("Expense item", link)
+		available_items.append({"name": expense_doc.name, "is_transit": expense_doc.is_transit})
+	return available_items
+
+
+def build_columns_and_headers(operation_type_names, available_expense_items, organization_bank_rules_names):
+	"""
+	Строит базовые заголовки и описание колонок для Handsontable.
+
+	Возвращает кортеж (colHeaders, columns), где:
+	  colHeaders - список заголовков,
+	  columns - список описаний колонок (тип, формат, настройки).
+	"""
+	colHeaders = [_("Date"), _("Budget Operation Type")]
+	columns = [
+		{
+			"field": "date",
+			"label": _("Date"),
+			"type": "date",
+			"dateFormat": "YYYY-MM-DD",
+			"correctFormat": True,
+			"allowInvalid": False,
+		},
+		{
+			"field": "budget_operation_type",
+			"label": _("Budget Operation Type"),
+			"type": "select",
+			"selectOptions": operation_type_names,
+		},
+	]
+
+	# Добавляем колонки для каждого expense item:
+	# сумма, транзит (если применимо), описание и комментарий.
+	for expense in available_expense_items:
+		name = expense["name"]
+
+		# Колонка для суммы
+		colHeaders.append(name)
+		columns.append(
+			{
+				"field": name,
+				"label": name,
+				"type": "numeric",
+				"allowInvalid": False,
+			}
 		)
-		budget_operation["description"] = (
-			budget_operation["description"] if budget_operation["description"] else ""
+
+		# Если expense item имеет транзитный флаг, добавляем колонку для транзитного платежа.
+		if expense["is_transit"]:
+			transit_label = _("{0} Transit").format(name)
+			colHeaders.append(transit_label)
+			columns.append(
+				{
+					"field": f"{name}_transit",
+					"label": transit_label,
+					"type": "dropdown",
+					"source": organization_bank_rules_names,
+				}
+			)
+
+		# Колонка для описания
+		desc_label = _("{0} Description").format(name)
+		colHeaders.append(desc_label)
+		columns.append(
+			{
+				"field": f"{name}_description",
+				"label": desc_label,
+				"type": "text",
+			}
 		)
-		budget_operation["comment"] = budget_operation["comment"] if budget_operation["comment"] else ""
-		budget_operation["recipient_of_transit_payment"] = (
-			budget_operation["recipient_of_transit_payment"]
-			if budget_operation["recipient_of_transit_payment"]
-			else ""
+
+		# Колонка для комментария
+		comm_label = _("{0} Comment").format(name)
+		colHeaders.append(comm_label)
+		columns.append(
+			{
+				"field": f"{name}_comment",
+				"label": comm_label,
+				"type": "text",
+			}
 		)
 
-	# Теперь нужно преобразовать данные согласно колонкам
-	for idx, value in enumerate(budget_operations):
-		budget_operations[idx] = create_empty_row(value["date"], value["type"])
-		if value["expense_item"] in colHeaders:
-			budget_operations[idx][colHeaders.index(value["expense_item"])] = value["sum"]
-			if f"{value['expense_item']} Транзит" in colHeaders:
-				budget_operations[idx][colHeaders.index(f"{value['expense_item']} Транзит")] = value[
-					"recipient_of_transit_payment"
-				]
+	return colHeaders, columns
 
-	# Группируем операции по дате
-	operations_by_date = {}
-	for op in budget_operations:
-		op_date = op[0]
-		# print(op_date, operations_by_date)
-		if op_date not in operations_by_date:
-			operations_by_date[op_date] = []
-		operations_by_date[op_date].append(op)
 
-	# Формируем итоговую матрицу данных
-	for d in date_range:
-		ops = operations_by_date.get(d, [])
-		# Разбиваем найденные операции по типу
-		plan_ops = [op for op in ops if op[1] == "План"]
-		fact_ops = [op for op in ops if op[1] == "Факт"]
+def build_field_to_index(columns):
+	"""
+	Создаёт маппинг, сопоставляющий имя поля индексу колонки.
+	"""
+	return {col["field"]: idx for idx, col in enumerate(columns)}
 
-		# Если для даты отсутствует операция типа "План", добавляем пустую строку
-		if not plan_ops:
-			plan_ops = [create_empty_row(d, "План")]
 
-		# Если для даты отсутствует операция типа "Факт", добавляем пустую строку
-		if not fact_ops:
-			fact_ops = [create_empty_row(d, "Факт")]
+def create_empty_row(date_str, op_type, field_to_index, num_columns):
+	"""
+	Создаёт пустую строку с заданными базовыми значениями: датой и типом операции.
+	"""
+	row = ["" for _ in range(num_columns)]
+	row[field_to_index["date"]] = date_str
+	row[field_to_index["budget_operation_type"]] = op_type
+	return row
 
-		# В результирующем наборе сначала идут все операции типа "План", затем "Факт"
-		for op in plan_ops + fact_ops:
-			data.append(op)
 
-	# print(data)
+def group_operations(budget_ops, field_to_index, num_columns):
+	"""
+	Группирует операции по ключу (date, budget_operation_type) и заполняет соответствующие колонки.
 
-	return {"colHeaders": colHeaders, "columns": columns, "data": data}
+	Возвращает словарь, где ключ — кортеж (дата, тип операции), а значение — сформированная строка.
+	"""
+	grouped = {}
+	for op in budget_ops:
+		key = (op["date"], op["budget_operation_type"])
+		if key not in grouped:
+			grouped[key] = create_empty_row(
+				op["date"], op["budget_operation_type"], field_to_index, num_columns
+			)
+		exp_name = op.get("expense_item")
+		if exp_name and (exp_name in field_to_index):
+			# Обновляем колонку суммы
+			grouped[key][field_to_index[exp_name]] = op.get("sum")
+			# Обновляем колонку транзит, если таковая определена
+			transit_field = f"{exp_name}_transit"
+			if transit_field in field_to_index:
+				grouped[key][field_to_index[transit_field]] = op.get("recipient_of_transit_payment")
+			# Обновляем колонку описания
+			desc_field = f"{exp_name}_description"
+			if desc_field in field_to_index:
+				grouped[key][field_to_index[desc_field]] = op.get("description")
+			# Обновляем колонку комментария
+			comm_field = f"{exp_name}_comment"
+			if comm_field in field_to_index:
+				grouped[key][field_to_index[comm_field]] = op.get("comment")
+	return grouped
+
+
+@frappe.whitelist()
+def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
+	"""
+	Возвращает данные бюджетных операций для Handsontable.
+
+	Результирующий словарь содержит:
+	  - data: список строк с данными,
+	  - colHeaders: заголовки колонок,
+	  - columns: описание колонок (формат, тип и пр.).
+	"""
+	result = {
+		"data": [],
+		"colHeaders": [],
+		"columns": [],
+	}
+
+	DAYS = 15
+	current_date = date.today()
+	start_date = current_date - timedelta(days=DAYS)
+	end_date = current_date + timedelta(days=DAYS)
+
+	# Получаем диапазон дат
+	date_range = get_date_range(start_date, end_date)
+
+	# Получаем данные
+	budget_ops = fetch_budget_operations(start_date, end_date)
+	operation_type_names = get_operation_types()
+	organization_bank_rules_names = get_bank_rules()
+	available_expense_items = get_available_expense_items(organization_bank_rule_name)
+
+	# Формируем заголовки и колонки
+	colHeaders, columns = build_columns_and_headers(
+		operation_type_names, available_expense_items, organization_bank_rules_names
+	)
+	result["colHeaders"] = colHeaders
+	result["columns"] = columns
+
+	# Создаём маппинг для быстрого доступа к индексам колонок
+	field_to_index = build_field_to_index(columns)
+	num_columns = len(colHeaders)
+
+	# Группируем бюджетные операции по (дата, бюджет_operation_type)
+	grouped_ops = group_operations(budget_ops, field_to_index, num_columns)
+
+	# Формируем итоговые данные: для каждой даты и для каждого типа операции
+	for dt in date_range:
+		for op_type in operation_type_names:
+			key = (dt, op_type)
+			if key in grouped_ops:
+				result["data"].append(grouped_ops[key])
+			else:
+				result["data"].append(create_empty_row(dt, op_type, field_to_index, num_columns))
+
+	return result
