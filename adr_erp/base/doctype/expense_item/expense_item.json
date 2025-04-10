@@ -7,7 +7,6 @@
  "engine": "InnoDB",
  "field_order": [
   "expense_item_name",
-  "is_active",
   "is_transit"
  ],
  "fields": [
@@ -21,12 +20,6 @@
   },
   {
    "default": "0",
-   "fieldname": "is_active",
-   "fieldtype": "Check",
-   "label": "Is active"
-  },
-  {
-   "default": "0",
    "fieldname": "is_transit",
    "fieldtype": "Check",
    "label": "Is transit"
@@ -35,7 +28,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-03 13:55:15.195500",
+ "modified": "2025-04-10 21:58:19.131891",
  "modified_by": "Administrator",
  "module": "base",
  "name": "Expense item",

@@ -8,7 +8,6 @@
  "field_order": [
   "organization",
   "bank",
-  "is_active",
   "available_expense_items"
  ],
  "fields": [
@@ -29,12 +28,6 @@
    "reqd": 1
   },
   {
-   "default": "0",
-   "fieldname": "is_active",
-   "fieldtype": "Check",
-   "label": "Is active"
-  },
-  {
    "fieldname": "available_expense_items",
    "fieldtype": "Table MultiSelect",
    "label": "Available Expense items",
@@ -44,7 +37,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-28 21:54:40.904535",
+ "modified": "2025-04-10 21:58:11.628465",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Organization-Bank Rules",

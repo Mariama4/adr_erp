@@ -6,25 +6,32 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "section_break_plfu",
-  "type_name"
+  "type_name",
+  "priority"
  ],
  "fields": [
   {
-   "fieldname": "section_break_plfu",
-   "fieldtype": "Section Break"
-  },
-  {
    "fieldname": "type_name",
    "fieldtype": "Data",
+   "in_list_view": 1,
    "label": "Type name",
+   "reqd": 1,
    "unique": 1
+  },
+  {
+   "fieldname": "priority",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Priority",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-07 16:36:29.225838",
+ "modified": "2025-04-10 21:57:50.049905",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Budget operation types",

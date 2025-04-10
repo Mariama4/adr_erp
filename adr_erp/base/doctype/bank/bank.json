@@ -6,8 +6,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "bank_name",
-  "is_active"
+  "bank_name"
  ],
  "fields": [
   {
@@ -17,18 +16,12 @@
    "label": "Bank name",
    "reqd": 1,
    "unique": 1
-  },
-  {
-   "default": "0",
-   "fieldname": "is_active",
-   "fieldtype": "Check",
-   "label": "Is active"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-28 14:35:45.910088",
+ "modified": "2025-04-10 21:58:29.191167",
  "modified_by": "Administrator",
  "module": "base",
  "name": "Bank",

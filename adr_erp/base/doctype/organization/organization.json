@@ -6,8 +6,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "organization_name",
-  "is_active"
+  "organization_name"
  ],
  "fields": [
   {
@@ -17,18 +16,12 @@
    "label": "Organization name",
    "reqd": 1,
    "unique": 1
-  },
-  {
-   "default": "0",
-   "fieldname": "is_active",
-   "fieldtype": "Check",
-   "label": "Is active"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-03-28 11:56:25.050728",
+ "modified": "2025-04-10 21:58:36.087673",
  "modified_by": "Administrator",
  "module": "base",
  "name": "Organization",
