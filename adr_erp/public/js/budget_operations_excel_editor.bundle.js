@@ -1,186 +1,225 @@
 import Handsontable from 'handsontable';
-import 'handsontable/styles/handsontable.min.css';
-import 'handsontable/styles/ht-theme-main.min.css';
 
 const container = document.querySelector('.budget_operations_excel_editor_table');
-
-const main_section = document.querySelector('body > div.main-section');
-const body_sidebar = document.querySelector('body > div.body-sidebar-container');
-const sticky_top = document.querySelector('body > div.main-section > div.sticky-top');
-const body = document.querySelector('#body');
+const mainSection = document.querySelector('body > div.main-section');
+const bodySidebar = document.querySelector('body > div.body-sidebar-container');
+const stickyTop = document.querySelector('body > div.main-section > div.sticky-top');
+const bodyEl = document.querySelector('#body');
 
 window.hotInstance = null;
 
-function setup_excel_editor_table(organization_bank_rule_name) {
+/**
+ * Вычисляет конфигурацию объединения ячеек для столбца "Дата"
+ * @param {Array} data - Массив данных таблицы.
+ * @returns {Array} mergeCells - Конфигурация объединения ячеек.
+ */
+function getMergeCellsConfig(data) {
+	const mergeCells = [];
+	let startRow = 0;
+	let currentDate = data[0][0];
+	let rowspan = 1;
+
+	for (let i = 1; i < data.length; i++) {
+		if (data[i][0] === currentDate) {
+			rowspan++;
+		} else {
+			if (rowspan > 1) {
+				mergeCells.push({
+					row: startRow,
+					col: 0,
+					rowspan: rowspan,
+					colspan: 1,
+				});
+			}
+			startRow = i;
+			currentDate = data[i][0];
+			rowspan = 1;
+		}
+	}
+	if (rowspan > 1) {
+		mergeCells.push({ row: startRow, col: 0, rowspan: rowspan, colspan: 1 });
+	}
+	return mergeCells;
+}
+
+/**
+ * Определяет индексы столбцов, которые нужно скрыть.
+ * @param {Array} colHeaders - Массив заголовков столбцов.
+ * @returns {Array} hiddenIndices - Массив индексов скрытых столбцов.
+ */
+function getHiddenColumnsIndices(colHeaders) {
+	return colHeaders.reduce((acc, header, index) => {
+		if (header.includes(__('Comment'))) {
+			acc.push(index);
+		}
+		return acc;
+	}, []);
+}
+
+/**
+ * Рассчитывает размеры таблицы с учётом остальных элементов страницы.
+ * @returns {Object} - Объект с ключами width и height.
+ */
+function calculateDimensions() {
+	const width = window.innerWidth - bodySidebar.clientWidth;
+	const height = mainSection.clientHeight - stickyTop.clientHeight - bodyEl.clientHeight;
+	return { width, height };
+}
+
+/**
+ * Возвращает настройки контекстного меню для Handsontable.
+ * В добавок, если expense item может быть транзитным (то есть в соседней колонке присутствует слово "Transit"),
+ * то диапазон поиска скрытых колонок расширяется с 3 до 4 колонок.
+ * @returns {Object} contextMenuSettings
+ */
+function getContextMenuSettings() {
+	return {
+		items: {
+			add_col_comment: {
+				name: __('Add comment'),
+				callback: function (key, selection) {
+					// Получаем текущие скрытые колонки из настроек
+					let hiddenCols = this.getSettings().hiddenColumns.columns || [];
+					// Копия массива, чтобы не модифицировать исходный
+					let newHiddenCols = Array.isArray(hiddenCols) ? [...hiddenCols] : [];
+
+					selection.forEach((sel) => {
+						let targetCol = sel.end.col;
+						// Определяем базовый диапазон поиска
+						let checkRange = 3;
+						// Если рядом с текущей позицией есть колонка с "Transit",
+						// расширяем диапазон поиска до 4 колонок
+						const nextColHeader = this.getColHeader(targetCol + 1);
+						if (nextColHeader && nextColHeader.includes(__('Transit'))) {
+							checkRange = 4;
+						}
+
+						while (
+							targetCol < this.countCols() &&
+							targetCol < sel.end.col + checkRange
+						) {
+							if (newHiddenCols.includes(targetCol)) {
+								newHiddenCols = newHiddenCols.filter(
+									(colIndex) => colIndex !== targetCol,
+								);
+								break;
+							}
+							targetCol++;
+						}
+					});
+
+					this.updateSettings({
+						hiddenColumns: {
+							columns: newHiddenCols,
+							indicators: true,
+						},
+					});
+				},
+			},
+		},
+	};
+}
+
+/**
+ * Инициализирует Handsontable с полученными данными и настройками.
+ * @param {Object} message - Данные и настройки, полученные с сервера.
+ */
+function initHandsontableInstance(message) {
+	const mergeCellsConfig = getMergeCellsConfig(message.data);
+	const hiddenColumnsIndices = getHiddenColumnsIndices(message.colHeaders);
+	const { width, height } = calculateDimensions();
+	const contextMenuSettings = getContextMenuSettings();
+
+	if (window.hotInstance) {
+		window.hotInstance.destroy();
+	}
+
+	window.hotInstance = new Handsontable(container, {
+		data: message.data,
+		columns: message.columns,
+		fixedColumnsStart: 2,
+		rowHeaders: true,
+		autoWrapRow: true,
+		autoWrapCol: true,
+		colWidths: [105, 50].concat(
+			Array.from({ length: message.columns.length - 2 }, (_, i) => [100, 150, 150][i % 3]),
+		),
+		colHeaders: message.colHeaders,
+		mergeCells: mergeCellsConfig,
+		width: width,
+		height: height,
+		contextMenu: contextMenuSettings,
+		hiddenColumns: {
+			columns: hiddenColumnsIndices,
+			indicators: false,
+		},
+		viewportColumnRenderingOffset: 0,
+		viewportRowRenderingOffset: 0,
+		afterGetColHeader: function (col, TH) {
+			if (col >= 0) {
+				TH.style.fontWeight = 'bold';
+				TH.style.textAlign = 'center';
+				const headerText = TH.innerText || '';
+				if (headerText.includes(__('Comment')) || headerText.includes(__('Description'))) {
+					TH.style.backgroundColor = '#FFCCCC';
+				} else {
+					TH.style.backgroundColor = '#d3d3d3';
+				}
+			}
+		},
+		licenseKey: 'non-commercial-and-evaluation',
+	});
+
+	scrollToCurrentDate();
+}
+
+/**
+ * Прокручивает таблицу к текущей дате.
+ */
+function scrollToCurrentDate() {
+	const now = new Date();
+	const year = now.getFullYear();
+	const month = (now.getMonth() + 1).toString().padStart(2, '0');
+	const day = now.getDate().toString().padStart(2, '0');
+	const currentDate = `${year}-${month}-${day}`;
+	const rowIndex = window.hotInstance.getSourceData().findIndex((row) => row[0] === currentDate);
+	if (rowIndex >= 0) {
+		window.hotInstance.scrollViewportTo(rowIndex);
+	}
+}
+
+/**
+ * Привязывает обработчик изменения размеров окна для обновления настроек Handsontable.
+ */
+function attachResizeListener() {
+	window.addEventListener('resize', () => {
+		if (window.hotInstance) {
+			const { width, height } = calculateDimensions();
+			window.hotInstance.updateSettings({
+				width: width,
+				height: height,
+			});
+		}
+	});
+}
+
+/**
+ * Основная функция для инициализации Excel-редактора.
+ * Запрашивает данные с сервера и отображает их в Handsontable.
+ *
+ * В дальнейшем сюда можно добавить функционал для отправки данных на сервер и синхронизации изменений между пользователями.
+ *
+ * @param {String} organization_bank_rule_name - Имя документа правил организации.
+ */
+function setupExcelEditorTable(organization_bank_rule_name) {
 	frappe
 		.call('adr_erp.budget.budget_api.get_budget_plannig_data_for_handsontable', {
 			organization_bank_rule_name: organization_bank_rule_name,
 		})
 		.then((r) => {
-			const hiddenColumnsIndices = r.message.colHeaders.reduce((acc, header, index) => {
-				if (header.includes('Комментарий')) {
-					acc.push(index);
-				}
-				return acc;
-			}, []);
-
-			// Функция для вычисления конфигурации объединения ячеек в колонке "Дата"
-			function getMergeCellsConfig(data) {
-				const mergeCells = [];
-				let startRow = 0;
-				let currentDate = data[0][0];
-				let rowspan = 1;
-
-				for (let i = 1; i < data.length; i++) {
-					if (data[i][0] === currentDate) {
-						rowspan++;
-					} else {
-						// Если в группе больше одной строки – добавляем объединение
-						if (rowspan > 1) {
-							mergeCells.push({
-								row: startRow,
-								col: 0,
-								rowspan: rowspan,
-								colspan: 1,
-							});
-						}
-						// Сброс группы
-						startRow = i;
-						currentDate = data[i][0];
-						rowspan = 1;
-					}
-				}
-				// Проверка последней группы
-				if (rowspan > 1) {
-					mergeCells.push({ row: startRow, col: 0, rowspan: rowspan, colspan: 1 });
-				}
-				return mergeCells;
-			}
-
-			// Вычисляем конфигурацию объединения ячеек для данных
-			const mergeCellsConfig = getMergeCellsConfig(r.message.data);
-
-			if (window.hotInstance) {
-				window.hotInstance.destroy();
-			}
-
-			const contextMenuSettings = {
-				items: {
-					add_col_comment: {
-						name: __('Add comment'),
-						callback: function (key, selection, clickEvent) {
-							// Получаем текущий массив скрытых колонок из настроек
-							let hiddenCols = this.getSettings().hiddenColumns.columns || [];
-							// Создаем копию массива, чтобы не изменять исходный напрямую
-							let newHiddenCols = Array.isArray(hiddenCols) ? [...hiddenCols] : [];
-
-							// Для каждого выделения ищем скрытую колонку в пределах 3 колонок справа от точки нажатия
-							selection.forEach((sel) => {
-								// Начинаем с колонки, в которой завершено выделение
-								let targetCol = sel.end.col;
-								let found = false;
-								// Ограничиваем поиск диапазоном: от sel.end.col до sel.end.col + 2 (всего 3 колонки)
-								while (
-									targetCol < this.countCols() &&
-									targetCol < sel.end.col + 4
-								) {
-									if (newHiddenCols.includes(targetCol)) {
-										// Удаляем найденную колонку из массива скрытых колонок
-										newHiddenCols = newHiddenCols.filter(
-											(colIndex) => colIndex !== targetCol,
-										);
-										found = true;
-										break; // Прерываем поиск для текущего выделения
-									}
-									targetCol++;
-								}
-							});
-
-							// Обновляем настройки, убираем найденные скрытые колонки
-							this.updateSettings({
-								hiddenColumns: {
-									columns: newHiddenCols,
-									indicators: true, // отображаем индикаторы скрытых колонок, если требуется
-								},
-							});
-						},
-					},
-				},
-			};
-
-			const calculatedWidth = window.innerWidth - body_sidebar.clientWidth;
-			const calculatedHeight =
-				main_section.clientHeight - sticky_top.clientHeight - body.clientHeight;
-
-			window.hotInstance = new Handsontable(container, {
-				data: r.message.data,
-				columns: r.message.columns,
-				fixedColumnsStart: 2,
-				rowHeaders: true,
-				autoWrapRow: true,
-				autoWrapCol: true,
-				colWidths: [105, 50].concat(
-					Array.from(
-						{ length: r.message.columns.length - 2 },
-						(_, i) => [100, 150, 150][i % 3],
-					),
-				),
-				colHeaders: r.message.colHeaders,
-				mergeCells: mergeCellsConfig,
-				width: calculatedWidth, // Устанавливаем ширину контейнера
-				height: calculatedHeight, // Устанавливаем высоту контейнера
-				contextMenu: contextMenuSettings,
-				hiddenColumns: {
-					columns: hiddenColumnsIndices,
-					indicators: true, // не отображать индикаторы скрытых колонок
-				},
-				afterGetColHeader: function (col, TH) {
-					if (col >= 0) {
-						TH.style.fontWeight = 'bold';
-						TH.style.textAlign = 'center';
-						// Получаем текст заголовка
-						const headerText = TH.innerText || '';
-						// Если в тексте есть "Комментарий" или "Описание", устанавливаем мягко-красный фон
-						if (
-							headerText.includes('Комментарий') ||
-							headerText.includes('Описание')
-						) {
-							TH.style.backgroundColor = '#FFCCCC';
-						} else {
-							TH.style.backgroundColor = '#d3d3d3';
-						}
-					}
-				},
-				licenseKey: 'non-commercial-and-evaluation',
-			});
-
-			let date = new Date();
-
-			let year = date.getFullYear();
-			let month = (date.getMonth() + 1).toString().padStart(2, '0');
-			let day = date.getDate().toString().padStart(2, '0');
-
-			let currentDate = `${year}-${month}-${day}`;
-			let rowIndex = window.hotInstance
-				.getSourceData()
-				.findIndex((row) => row[0] === currentDate);
-			if (rowIndex >= 0) {
-				window.hotInstance.scrollViewportTo(rowIndex);
-			} else {
-				console.log('Строка с заданным значением не найдена');
-			}
+			initHandsontableInstance(r.message);
 		});
 }
 
-window.setup_excel_editor_table = setup_excel_editor_table;
-
-window.addEventListener('resize', () => {
-	if (window.hotInstance) {
-		const newWidth = window.innerWidth - body_sidebar.clientWidth;
-		const newHeight = main_section.clientHeight - sticky_top.clientHeight - body.clientHeight;
-		window.hotInstance.updateSettings({
-			width: newWidth,
-			height: newHeight,
-		});
-	}
-});
+window.setup_excel_editor_table = setupExcelEditorTable;
+attachResizeListener();
