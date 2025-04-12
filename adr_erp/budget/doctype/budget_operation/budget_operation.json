@@ -19,8 +19,7 @@
   {
    "fieldname": "sum",
    "fieldtype": "Currency",
-   "label": "Sum",
-   "reqd": 1
+   "label": "Sum"
   },
   {
    "fieldname": "expense_item",
@@ -68,7 +67,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-10 23:41:15.119028",
+ "modified": "2025-04-13 01:44:24.169600",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Budget operation",
