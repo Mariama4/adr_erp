@@ -12,7 +12,7 @@ def get_date_range(start_date, end_date):
 	return [(start_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(num_days)]
 
 
-def fetch_budget_operations(start_date, end_date):
+def fetch_budget_operations(organization_bank_rule_name, start_date, end_date):
 	"""
 	Получает бюджетные операции с БД за указанный период и приводит данные к необходимому виду.
 	"""
@@ -21,6 +21,7 @@ def fetch_budget_operations(start_date, end_date):
 		filters=[
 			["date", ">=", start_date.strftime("%Y-%m-%d")],
 			["date", "<=", end_date.strftime("%Y-%m-%d")],
+			["organization_bank_rule", "=", organization_bank_rule_name],
 		],
 		order_by="date asc",
 		fields=[
@@ -217,7 +218,7 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
 		"columns": [],
 	}
 
-	DAYS = 15
+	DAYS = 7
 	current_date = date.today()
 	start_date = current_date - timedelta(days=DAYS)
 	end_date = current_date + timedelta(days=DAYS)
@@ -226,7 +227,7 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
 	date_range = get_date_range(start_date, end_date)
 
 	# Получаем данные
-	budget_ops = fetch_budget_operations(start_date, end_date)
+	budget_ops = fetch_budget_operations(organization_bank_rule_name, start_date, end_date)
 	operation_type_names = get_operation_types()
 	organization_bank_rules_names = get_bank_rules()
 	available_expense_items = get_available_expense_items(organization_bank_rule_name)
