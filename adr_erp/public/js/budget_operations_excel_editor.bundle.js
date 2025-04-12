@@ -14,6 +14,7 @@ window.hotInstance = null;
  * @returns {Array} mergeCells - Конфигурация объединения ячеек.
  */
 function getMergeCellsConfig(data) {
+	if (!data || data.length === 0) return [];
 	const mergeCells = [];
 	let startRow = 0;
 	let currentDate = data[0][0];
@@ -68,8 +69,8 @@ function calculateDimensions() {
 
 /**
  * Возвращает настройки контекстного меню для Handsontable.
- * В добавок, если expense item может быть транзитным (то есть в соседней колонке присутствует слово "Transit"),
- * то диапазон поиска скрытых колонок расширяется с 3 до 4 колонок.
+ * Если expense item может быть транзитным (то есть в соседней колонке присутствует слово "Transit"),
+ * диапазон поиска скрытых колонок расширяется с 3 до 4 колонок.
  * @returns {Object} contextMenuSettings
  */
 function getContextMenuSettings() {
@@ -78,17 +79,12 @@ function getContextMenuSettings() {
 			add_col_comment: {
 				name: __('Add comment'),
 				callback: function (key, selection) {
-					// Получаем текущие скрытые колонки из настроек
 					let hiddenCols = this.getSettings().hiddenColumns.columns || [];
-					// Копия массива, чтобы не модифицировать исходный
 					let newHiddenCols = Array.isArray(hiddenCols) ? [...hiddenCols] : [];
 
 					selection.forEach((sel) => {
 						let targetCol = sel.end.col;
-						// Определяем базовый диапазон поиска
 						let checkRange = 3;
-						// Если рядом с текущей позицией есть колонка с "Transit",
-						// расширяем диапазон поиска до 4 колонок
 						const nextColHeader = this.getColHeader(targetCol + 1);
 						if (nextColHeader && nextColHeader.includes(__('Transit'))) {
 							checkRange = 4;
@@ -121,7 +117,7 @@ function getContextMenuSettings() {
 }
 
 /**
- * Инициализирует Handsontable с полученными данными и настройками.
+ * Инициализирует или обновляет Handsontable с полученными данными и настройками.
  * @param {Object} message - Данные и настройки, полученные с сервера.
  */
 function initHandsontableInstance(message) {
@@ -130,45 +126,68 @@ function initHandsontableInstance(message) {
 	const { width, height } = calculateDimensions();
 	const contextMenuSettings = getContextMenuSettings();
 
+	// Если экземпляр уже создан, обновляем его настройки и данные, иначе создаем новый.
 	if (window.hotInstance) {
-		window.hotInstance.destroy();
-	}
-
-	window.hotInstance = new Handsontable(container, {
-		data: message.data,
-		columns: message.columns,
-		fixedColumnsStart: 2,
-		rowHeaders: true,
-		autoWrapRow: true,
-		autoWrapCol: true,
-		colWidths: [105, 50].concat(
-			Array.from({ length: message.columns.length - 2 }, (_, i) => [100, 150, 150][i % 3]),
-		),
-		colHeaders: message.colHeaders,
-		mergeCells: mergeCellsConfig,
-		width: width,
-		height: height,
-		contextMenu: contextMenuSettings,
-		hiddenColumns: {
-			columns: hiddenColumnsIndices,
-			indicators: false,
-		},
-		viewportColumnRenderingOffset: 0,
-		viewportRowRenderingOffset: 0,
-		afterGetColHeader: function (col, TH) {
-			if (col >= 0) {
-				TH.style.fontWeight = 'bold';
-				TH.style.textAlign = 'center';
-				const headerText = TH.innerText || '';
-				if (headerText.includes(__('Comment')) || headerText.includes(__('Description'))) {
-					TH.style.backgroundColor = '#FFCCCC';
-				} else {
-					TH.style.backgroundColor = '#d3d3d3';
+		window.hotInstance.updateSettings({
+			data: message.data,
+			mergeCells: mergeCellsConfig,
+			columns: message.columns,
+			colHeaders: message.colHeaders,
+			width: width,
+			height: height,
+			contextMenu: contextMenuSettings,
+			hiddenColumns: {
+				columns: hiddenColumnsIndices,
+				indicators: false,
+			},
+			viewportColumnRenderingOffset: 0,
+			viewportRowRenderingOffset: 0,
+		});
+		// Обновляем данные через loadData, чтобы гарантировать актуальность.
+		window.hotInstance.loadData(message.data);
+	} else {
+		window.hotInstance = new Handsontable(container, {
+			data: message.data,
+			columns: message.columns,
+			fixedColumnsStart: 2,
+			rowHeaders: true,
+			autoWrapRow: true,
+			autoWrapCol: true,
+			colWidths: [105, 50].concat(
+				Array.from(
+					{ length: message.columns.length - 2 },
+					(_, i) => [100, 150, 150][i % 3],
+				),
+			),
+			colHeaders: message.colHeaders,
+			mergeCells: mergeCellsConfig,
+			width: width,
+			height: height,
+			contextMenu: contextMenuSettings,
+			hiddenColumns: {
+				columns: hiddenColumnsIndices,
+				indicators: false,
+			},
+			viewportColumnRenderingOffset: 0,
+			viewportRowRenderingOffset: 0,
+			afterGetColHeader: function (col, TH) {
+				if (col >= 0) {
+					TH.style.fontWeight = 'bold';
+					TH.style.textAlign = 'center';
+					const headerText = TH.innerText || '';
+					if (
+						headerText.includes(__('Comment')) ||
+						headerText.includes(__('Description'))
+					) {
+						TH.style.backgroundColor = '#FFCCCC';
+					} else {
+						TH.style.backgroundColor = '#d3d3d3';
+					}
 				}
-			}
-		},
-		licenseKey: 'non-commercial-and-evaluation',
-	});
+			},
+			licenseKey: 'non-commercial-and-evaluation',
+		});
+	}
 
 	scrollToCurrentDate();
 }
@@ -204,14 +223,12 @@ function attachResizeListener() {
 }
 
 /**
- * Основная функция для инициализации Excel-редактора.
- * Запрашивает данные с сервера и отображает их в Handsontable.
- *
- * В дальнейшем сюда можно добавить функционал для отправки данных на сервер и синхронизации изменений между пользователями.
+ * Основная функция для обновления Excel-редактора.
+ * Запрашивает данные с сервера и обновляет экземпляр Handsontable.
  *
  * @param {String} organization_bank_rule_name - Имя документа правил организации.
  */
-function setupExcelEditorTable(organization_bank_rule_name) {
+function setup_excel_editor_table(organization_bank_rule_name) {
 	frappe
 		.call('adr_erp.budget.budget_api.get_budget_plannig_data_for_handsontable', {
 			organization_bank_rule_name: organization_bank_rule_name,
@@ -221,5 +238,5 @@ function setupExcelEditorTable(organization_bank_rule_name) {
 		});
 }
 
-window.setup_excel_editor_table = setupExcelEditorTable;
+window.setup_excel_editor_table = setup_excel_editor_table;
 attachResizeListener();
