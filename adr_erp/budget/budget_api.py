@@ -253,3 +253,9 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
 				result["data"].append(create_empty_row(dt, op_type, field_to_index, num_columns))
 
 	return result
+
+
+@frappe.whitelist()
+def save_budget_data_from_handsontable(data):
+	...
+	return {"success": True}

@@ -38,7 +38,6 @@ function getMergeCellsConfig(data) {
 	let startRow = 0;
 	// Проходим до i <= data.length для обработки последней группы
 	for (let i = 1; i <= data.length; i++) {
-		// Если дошли до конца или дата изменилась
 		if (i === data.length || data[i][0] !== data[startRow][0]) {
 			const groupLength = i - startRow;
 			if (groupLength > 1) {
@@ -85,7 +84,7 @@ function calculateDimensions() {
  *
  * Формируется пункт "Add new row" с подменю: для каждого типа операции создаётся подпункт,
  * при выборе которого вставляется в конец таблицы новая строка с текущей датой (в колонке 0)
- * и соответствующим типом операции (в колонке 1).
+ * и соответствующим типом операции (в колонке 1). После вставки обновляется объединение строк.
  *
  * @param {Array} operationTypeNames - Массив строк с типами операций.
  * @returns {Object} contextMenuSettings
@@ -96,31 +95,26 @@ function getContextMenuSettings(operationTypeNames = []) {
 		newRowSubmenu[`add_new_row_${opType}`] = {
 			name: __("Add row with type '{0}'", [opType]),
 			callback: function (key, selection, clickEvent) {
-				// Получаем индекс последней строки выделенного диапазона
-				let selectedIndexRow = selection[selection.length - 1].end.row;
 				const hot = window.hotInstance;
-
-				// Получаем исходные данные таблицы с восстановленными датами
 				let tableData = restoreDatesInData(hot.getSourceData());
-
-				// Создаем копию выбранной строки и обновляем тип операции (предполагается, что колонка 1 - это тип операции)
-				let newRow = [...tableData[selectedIndexRow]];
+				// Используем индекс последней строки выделенного диапазона
+				let selectedIndexRow = selection[selection.length - 1].end.row;
+				let selectedRow = tableData[selectedIndexRow];
+				// Создаем новую строку, заполняя все ячейки значением null
+				let newRow = Array(hot.getSettings().colHeaders.length).fill(null);
+				newRow[0] = selectedRow[0];
 				newRow[1] = opType;
-
-				// Добавляем новую строку в конец массива данных
+				// Добавляем новую строку в конец данных
 				tableData.push(newRow);
-
-				// Сортируем данные по дате (колонка 0) в порядке возрастания.
+				// Сортируем данные: сначала по дате, затем по порядку типов (в соответствии с operationTypeNames)
 				tableData.sort((a, b) => {
 					const dateCompare = a[0].localeCompare(b[0]);
 					if (dateCompare !== 0) return dateCompare;
-					// Получаем позиции типов из массива operationTypeNames.
 					let aTypeIndex = operationTypeNames.indexOf(a[1]);
 					let bTypeIndex = operationTypeNames.indexOf(b[1]);
 					return aTypeIndex - bTypeIndex;
 				});
-
-				// Загружаем отсортированные данные и обновляем настройки объединения ячеек
+				// Обновляем таблицу
 				hot.loadData(tableData);
 				hot.updateSettings({ mergeCells: getMergeCellsConfig(tableData) });
 			},
@@ -134,7 +128,6 @@ function getContextMenuSettings(operationTypeNames = []) {
 				callback: function (key, selection) {
 					let hiddenCols = this.getSettings().hiddenColumns.columns || [];
 					let newHiddenCols = Array.isArray(hiddenCols) ? [...hiddenCols] : [];
-
 					selection.forEach((sel) => {
 						let targetCol = sel.end.col;
 						let checkRange = 3;
@@ -169,16 +162,67 @@ function getContextMenuSettings(operationTypeNames = []) {
 }
 
 /**
+ * Заготовка функции сохранения данных.
+ * Эта функция получает текущие данные таблицы и отправляет их на сервер.
+ * Реализуйте логику сохранения, изменив метод и параметры запроса.
+ *
+ * @param {Array} data - Текущие данные таблицы.
+ */
+function saveBudgetData(data) {
+	// Пример: вызываем серверную функцию для сохранения данных.
+	// Параметры и название метода (adr_erp.budget.budget_api.save_budget_data) замените на реальные.
+	data = restoreDatesInData(data);
+	frappe.call({
+		method: 'adr_erp.budget.budget_api.save_budget_data_from_handsontable',
+		args: { data: data },
+		callback: function (r) {
+			if (r.message.success) {
+				console.log(__('Data saved successfully'));
+			} else {
+				console.error(__('Error saving data'));
+			}
+		},
+		error: function (err) {
+			console.error(__('Error saving data'), err);
+		},
+	});
+}
+
+/**
+ * Дебаунс-функция для уменьшения частоты вызовов.
+ * @param {Function} func - Функция, которую нужно вызывать.
+ * @param {number} delay - Задержка в миллисекундах.
+ * @returns {Function} Обёрнутую функцию.
+ */
+function debounce(func, delay) {
+	let timeout;
+	return function (...args) {
+		clearTimeout(timeout);
+		timeout = setTimeout(() => func.apply(this, args), delay);
+	};
+}
+
+/**
  * Инициализирует или обновляет Handsontable с полученными данными и настройками.
- * @param {Object} message - Данные и настройки, полученные с сервера.
+ * Ожидается, что message имеет ключи: data, columns, colHeaders, operationTypeNames.
  */
 function initHandsontableInstance(message) {
+	// Если не переданы значения, используем пустые массивы.
+	message.data = message.data || [];
+	message.columns = message.columns || [];
+	message.colHeaders = message.colHeaders || [];
+
+	// Извлекаем массив типов операций
+	const opTypes = Array.isArray(message.operationTypeNames) ? message.operationTypeNames : [];
+
+	// Восстанавливаем даты в данных, чтобы не было пропусков в первой колонке.
+	message.data = restoreDatesInData(message.data);
+
 	const mergeCellsConfig = getMergeCellsConfig(message.data);
 	const hiddenColumnsIndices = getHiddenColumnsIndices(message.colHeaders);
 	const { width, height } = calculateDimensions();
-	const contextMenuSettings = getContextMenuSettings(message.operationTypeNames);
+	const contextMenuSettings = getContextMenuSettings(opTypes);
 
-	// Если экземпляр уже создан, обновляем его настройки и данные, иначе создаем новый.
 	if (window.hotInstance) {
 		window.hotInstance.updateSettings({
 			data: message.data,
@@ -195,7 +239,6 @@ function initHandsontableInstance(message) {
 			viewportColumnRenderingOffset: 0,
 			viewportRowRenderingOffset: 0,
 		});
-		// Обновляем данные через loadData, чтобы гарантировать актуальность.
 		window.hotInstance.loadData(message.data);
 	} else {
 		window.hotInstance = new Handsontable(container, {
@@ -237,10 +280,18 @@ function initHandsontableInstance(message) {
 					}
 				}
 			},
+			// Обработчик изменений в таблице. Если изменения были внесены пользователем,
+			// вызываем функцию сохранения данных с небольшой задержкой (debounce).
+			afterChange: debounce(function (changes, source) {
+				console.log(source);
+				if (!['edit', 'CopyPaste.paste'].includes(source)) return; // пропускаем вызовы при загрузке данных
+				const currentData = window.hotInstance.getSourceData();
+				// Вызов заготовки сохранения данных на сервер
+				saveBudgetData(currentData);
+			}, 0),
 			licenseKey: 'non-commercial-and-evaluation',
 		});
 	}
-
 	scrollToCurrentDate();
 }
 
