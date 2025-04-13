@@ -164,7 +164,7 @@ def create_empty_row(date_str, op_type, field_to_index, num_columns):
 	"""
 	Создаёт пустую строку с заданными базовыми значениями: датой и типом операции.
 	"""
-	row = ["" for _ in range(num_columns)]
+	row = [None for _ in range(num_columns)]
 	row[field_to_index["date"]] = date_str
 	row[field_to_index["budget_operation_type"]] = op_type
 	return row
@@ -212,11 +212,7 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
 	  - colHeaders: заголовки колонок,
 	  - columns: описание колонок (формат, тип и пр.).
 	"""
-	result = {
-		"data": [],
-		"colHeaders": [],
-		"columns": [],
-	}
+	result = {"data": [], "colHeaders": [], "columns": [], "operationTypeNames": []}
 
 	DAYS = 7
 	current_date = date.today()
@@ -238,6 +234,7 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
 	)
 	result["colHeaders"] = colHeaders
 	result["columns"] = columns
+	result["operationTypeNames"] = operation_type_names
 
 	# Создаём маппинг для быстрого доступа к индексам колонок
 	field_to_index = build_field_to_index(columns)
