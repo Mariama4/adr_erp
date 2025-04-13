@@ -9,36 +9,48 @@ const bodyEl = document.querySelector('#body');
 window.hotInstance = null;
 
 /**
+ * Восстанавливает даты в данных. Если дата отсутствует в ячейке (первой колонке),
+ * устанавливает её равной ближайшей непустой дате из предыдущих строк.
+ * @param {Array} data - Массив данных таблицы.
+ * @returns {Array} data - Массив данных с восстановленными датами.
+ */
+function restoreDatesInData(data) {
+	if (!Array.isArray(data)) return data;
+	let lastDate = null;
+	for (let i = 0; i < data.length; i++) {
+		if (data[i][0]) {
+			lastDate = data[i][0];
+		} else {
+			data[i][0] = lastDate;
+		}
+	}
+	return data;
+}
+
+/**
  * Вычисляет конфигурацию объединения ячеек для столбца "Дата"
  * @param {Array} data - Массив данных таблицы.
  * @returns {Array} mergeCells - Конфигурация объединения ячеек.
  */
 function getMergeCellsConfig(data) {
-	if (!data || data.length === 0) return [];
+	if (!Array.isArray(data) || data.length === 0) return [];
 	const mergeCells = [];
 	let startRow = 0;
-	let currentDate = data[0][0];
-	let rowspan = 1;
-
-	for (let i = 1; i < data.length; i++) {
-		if (data[i][0] === currentDate) {
-			rowspan++;
-		} else {
-			if (rowspan > 1) {
+	// Проходим до i <= data.length для обработки последней группы
+	for (let i = 1; i <= data.length; i++) {
+		// Если дошли до конца или дата изменилась
+		if (i === data.length || data[i][0] !== data[startRow][0]) {
+			const groupLength = i - startRow;
+			if (groupLength > 1) {
 				mergeCells.push({
 					row: startRow,
 					col: 0,
-					rowspan: rowspan,
+					rowspan: groupLength,
 					colspan: 1,
 				});
 			}
 			startRow = i;
-			currentDate = data[i][0];
-			rowspan = 1;
 		}
-	}
-	if (rowspan > 1) {
-		mergeCells.push({ row: startRow, col: 0, rowspan: rowspan, colspan: 1 });
 	}
 	return mergeCells;
 }
@@ -69,11 +81,52 @@ function calculateDimensions() {
 
 /**
  * Возвращает настройки контекстного меню для Handsontable.
- * Если expense item может быть транзитным (то есть в соседней колонке присутствует слово "Transit"),
- * диапазон поиска скрытых колонок расширяется с 3 до 4 колонок.
+ * Параметр operationTypeNames — массив типов операций, пришедший с сервера.
+ *
+ * Формируется пункт "Add new row" с подменю: для каждого типа операции создаётся подпункт,
+ * при выборе которого вставляется в конец таблицы новая строка с текущей датой (в колонке 0)
+ * и соответствующим типом операции (в колонке 1).
+ *
+ * @param {Array} operationTypeNames - Массив строк с типами операций.
  * @returns {Object} contextMenuSettings
  */
-function getContextMenuSettings() {
+function getContextMenuSettings(operationTypeNames = []) {
+	const newRowSubmenu = {};
+	operationTypeNames.forEach((opType) => {
+		newRowSubmenu[`add_new_row_${opType}`] = {
+			name: __("Add row with type '{0}'", [opType]),
+			callback: function (key, selection, clickEvent) {
+				// Получаем индекс последней строки выделенного диапазона
+				let selectedIndexRow = selection[selection.length - 1].end.row;
+				const hot = window.hotInstance;
+
+				// Получаем исходные данные таблицы с восстановленными датами
+				let tableData = restoreDatesInData(hot.getSourceData());
+
+				// Создаем копию выбранной строки и обновляем тип операции (предполагается, что колонка 1 - это тип операции)
+				let newRow = [...tableData[selectedIndexRow]];
+				newRow[1] = opType;
+
+				// Добавляем новую строку в конец массива данных
+				tableData.push(newRow);
+
+				// Сортируем данные по дате (колонка 0) в порядке возрастания.
+				tableData.sort((a, b) => {
+					const dateCompare = a[0].localeCompare(b[0]);
+					if (dateCompare !== 0) return dateCompare;
+					// Получаем позиции типов из массива operationTypeNames.
+					let aTypeIndex = operationTypeNames.indexOf(a[1]);
+					let bTypeIndex = operationTypeNames.indexOf(b[1]);
+					return aTypeIndex - bTypeIndex;
+				});
+
+				// Загружаем отсортированные данные и обновляем настройки объединения ячеек
+				hot.loadData(tableData);
+				hot.updateSettings({ mergeCells: getMergeCellsConfig(tableData) });
+			},
+		};
+	});
+
 	return {
 		items: {
 			add_col_comment: {
@@ -89,7 +142,6 @@ function getContextMenuSettings() {
 						if (nextColHeader && nextColHeader.includes(__('Transit'))) {
 							checkRange = 4;
 						}
-
 						while (
 							targetCol < this.countCols() &&
 							targetCol < sel.end.col + checkRange
@@ -103,7 +155,6 @@ function getContextMenuSettings() {
 							targetCol++;
 						}
 					});
-
 					this.updateSettings({
 						hiddenColumns: {
 							columns: newHiddenCols,
@@ -112,6 +163,7 @@ function getContextMenuSettings() {
 					});
 				},
 			},
+			...newRowSubmenu,
 		},
 	};
 }
@@ -124,7 +176,7 @@ function initHandsontableInstance(message) {
 	const mergeCellsConfig = getMergeCellsConfig(message.data);
 	const hiddenColumnsIndices = getHiddenColumnsIndices(message.colHeaders);
 	const { width, height } = calculateDimensions();
-	const contextMenuSettings = getContextMenuSettings();
+	const contextMenuSettings = getContextMenuSettings(message.operationTypeNames);
 
 	// Если экземпляр уже создан, обновляем его настройки и данные, иначе создаем новый.
 	if (window.hotInstance) {
