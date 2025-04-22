@@ -94,8 +94,8 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 		{
 			"field": "budget_operation_type",
 			"label": _("Budget Operation Type"),
-			"type": "select",
-			"selectOptions": operation_type_names,
+			"type": "dropdown",
+			"source": operation_type_names,
 		},
 	]
 
@@ -256,6 +256,73 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
 
 
 @frappe.whitelist()
-def save_budget_data_from_handsontable(data):
-	...
+def save_budget_changes(organization_bank_rule_name, changes):
+	"""
+	changes — список dict-ов:
+	  {
+	        date: '2025-04-22',
+	        budget_type: '…',
+	        field: 'ExpenseItemName' или 'ExpenseItemName_comment' и т.п.,
+	        old_value: ...,
+	        new_value: ...
+	  }
+	"""
+	import json
+
+	from frappe.utils import flt
+
+	changes = json.loads(changes)
+
+	# Для каждого изменения — найти или создать Budget operation
+	for ch in changes:
+		date = ch.get("date")
+		op_type = ch.get("budget_type")
+		field = ch.get("field")
+		val = ch.get("new_value")
+
+		# ищем запись Budget operation
+		op = frappe.get_all(
+			"Budget operation",
+			filters={
+				"date": date,
+				"budget_operation_type": op_type,
+				"organization_bank_rule": organization_bank_rule_name,
+				"expense_item": field.split("_")[0],  # например, 'Rent' из 'Rent_comment'
+			},
+			limit=1,
+			pluck="name",
+		)
+		if op:
+			doc = frappe.get_doc("Budget operation", op[0])
+		else:
+			# если нет — создаём новую операцию
+			doc = frappe.get_doc(
+				{
+					"doctype": "Budget operation",
+					"date": date,
+					"budget_operation_type": op_type,
+					"organization_bank_rule": organization_bank_rule_name,
+					"expense_item": field.split("_")[0],
+				}
+			)
+
+		# сопоставляем field → атрибут DocType
+		if field.endswith("_transit"):
+			doc.recipient_of_transit_payment = val or ""
+		elif field.endswith("_description"):
+			doc.description = val or ""
+		elif field.endswith("_comment"):
+			doc.comment = val or ""
+		else:
+			# это поле суммы
+			doc.sum = flt(val or 0)
+
+		doc.save()
+
+	# после сохранения разошлём событие всем клиентам
+	frappe.publish_realtime(
+		event="budget_data_updated",
+		message={"organization_bank_rule_name": organization_bank_rule_name},
+		user=None,  # всем
+	)
 	return {"success": True}

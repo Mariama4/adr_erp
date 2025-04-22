@@ -162,33 +162,6 @@ function getContextMenuSettings(operationTypeNames = []) {
 }
 
 /**
- * Заготовка функции сохранения данных.
- * Эта функция получает текущие данные таблицы и отправляет их на сервер.
- * Реализуйте логику сохранения, изменив метод и параметры запроса.
- *
- * @param {Array} data - Текущие данные таблицы.
- */
-function saveBudgetData(data) {
-	// Пример: вызываем серверную функцию для сохранения данных.
-	// Параметры и название метода (adr_erp.budget.budget_api.save_budget_data) замените на реальные.
-	data = restoreDatesInData(data);
-	frappe.call({
-		method: 'adr_erp.budget.budget_api.save_budget_data_from_handsontable',
-		args: { data: data },
-		callback: function (r) {
-			if (r.message.success) {
-				console.log(__('Data saved successfully'));
-			} else {
-				console.error(__('Error saving data'));
-			}
-		},
-		error: function (err) {
-			console.error(__('Error saving data'), err);
-		},
-	});
-}
-
-/**
  * Дебаунс-функция для уменьшения частоты вызовов.
  * @param {Function} func - Функция, которую нужно вызывать.
  * @param {number} delay - Задержка в миллисекундах.
@@ -206,7 +179,7 @@ function debounce(func, delay) {
  * Инициализирует или обновляет Handsontable с полученными данными и настройками.
  * Ожидается, что message имеет ключи: data, columns, colHeaders, operationTypeNames.
  */
-function initHandsontableInstance(message) {
+function initHandsontableInstance(message, organization_bank_rule_name) {
 	// Если не переданы значения, используем пустые массивы.
 	message.data = message.data || [];
 	message.columns = message.columns || [];
@@ -223,75 +196,124 @@ function initHandsontableInstance(message) {
 	const { width, height } = calculateDimensions();
 	const contextMenuSettings = getContextMenuSettings(opTypes);
 
-	if (window.hotInstance) {
-		window.hotInstance.updateSettings({
-			data: message.data,
-			mergeCells: mergeCellsConfig,
-			columns: message.columns,
-			colHeaders: message.colHeaders,
-			width: width,
-			height: height,
-			contextMenu: contextMenuSettings,
-			hiddenColumns: {
-				columns: hiddenColumnsIndices,
-				indicators: false,
-			},
-			viewportColumnRenderingOffset: 0,
-			viewportRowRenderingOffset: 0,
-		});
-		window.hotInstance.loadData(message.data);
-	} else {
-		window.hotInstance = new Handsontable(container, {
-			data: message.data,
-			columns: message.columns,
-			fixedColumnsStart: 2,
-			rowHeaders: true,
-			autoWrapRow: true,
-			autoWrapCol: true,
-			colWidths: [105, 50].concat(
-				Array.from(
-					{ length: message.columns.length - 2 },
-					(_, i) => [100, 150, 150][i % 3],
-				),
-			),
-			colHeaders: message.colHeaders,
-			mergeCells: mergeCellsConfig,
-			width: width,
-			height: height,
-			contextMenu: contextMenuSettings,
-			hiddenColumns: {
-				columns: hiddenColumnsIndices,
-				indicators: false,
-			},
-			viewportColumnRenderingOffset: 0,
-			viewportRowRenderingOffset: 0,
-			afterGetColHeader: function (col, TH) {
-				if (col >= 0) {
-					TH.style.fontWeight = 'bold';
-					TH.style.textAlign = 'center';
-					const headerText = TH.innerText || '';
-					if (
-						headerText.includes(__('Comment')) ||
-						headerText.includes(__('Description'))
-					) {
-						TH.style.backgroundColor = '#FFCCCC';
-					} else {
-						TH.style.backgroundColor = '#d3d3d3';
+	const hotSettings = {
+		data: message.data,
+		columns: message.columns,
+		fixedColumnsStart: 2,
+		rowHeaders: true,
+		autoWrapRow: true,
+		autoWrapCol: true,
+		colWidths: [105, 50].concat(
+			Array.from({ length: message.columns.length - 2 }, (_, i) => [100, 150, 150][i % 3]),
+		),
+		colHeaders: message.colHeaders,
+		mergeCells: mergeCellsConfig,
+		width: width,
+		height: height,
+		contextMenu: contextMenuSettings,
+		hiddenColumns: {
+			columns: hiddenColumnsIndices,
+			indicators: false,
+		},
+		viewportColumnRenderingOffset: 0,
+		viewportRowRenderingOffset: 0,
+
+		// Блокируем вставку через Ctrl+V в колонках select/dropdown
+		beforePaste: function (data, coords) {
+			const colsMeta = this.getSettings().columns;
+
+			coords.forEach((range) => {
+				const { startRow, startCol, endRow, endCol } = range;
+
+				for (let r = startRow; r <= endRow; r++) {
+					for (let c = startCol; c <= endCol; c++) {
+						const colMeta = colsMeta[c];
+						if (
+							colMeta &&
+							(colMeta.type === 'dropdown' || colMeta.type === 'select')
+						) {
+							// вычисляем позицию в data: смещение по рядам и колонкам от начала диапазона
+							const dataRow = r - startRow;
+							const dataCol = c - startCol;
+							// заменяем то, что хотел вставить пользователь, на текущее значение ячейки
+							data[dataRow][dataCol] = this.getDataAtCell(r, c);
+						}
 					}
 				}
-			},
-			// Обработчик изменений в таблице. Если изменения были внесены пользователем,
-			// вызываем функцию сохранения данных с небольшой задержкой (debounce).
-			afterChange: debounce(function (changes, source) {
-				console.log(source);
-				if (!['edit', 'CopyPaste.paste'].includes(source)) return; // пропускаем вызовы при загрузке данных
-				const currentData = window.hotInstance.getSourceData();
-				// Вызов заготовки сохранения данных на сервер
-				saveBudgetData(currentData);
-			}, 0),
-			licenseKey: 'non-commercial-and-evaluation',
-		});
+			});
+		},
+
+		afterGetColHeader: function (col, TH) {
+			if (col >= 0) {
+				TH.style.fontWeight = 'bold';
+				TH.style.textAlign = 'center';
+				const headerText = TH.innerText || '';
+				if (headerText.includes(__('Comment')) || headerText.includes(__('Description'))) {
+					TH.style.backgroundColor = '#FFCCCC';
+				} else {
+					TH.style.backgroundColor = '#d3d3d3';
+				}
+			}
+		},
+
+		// Обработчик изменений в таблице. Если изменения были внесены пользователем,
+		// собираем payload и отправляем на сервер.
+		afterChange: debounce(function (changes, source) {
+			if (!changes || !['edit', 'CopyPaste.paste'].includes(source)) return;
+
+			const hot = window.hotInstance;
+			const cols = hot.getSettings().columns;
+			// Берём «сырые» данные и делаем их копию, чтобы не портить исходник
+			const rawData = hot.getSourceData().map((row) => [...row]);
+			// Восстанавливаем даты
+			const data = restoreDatesInData(rawData);
+
+			// Составляем массив изменений
+			let payload = changes
+				.map(([row, col, oldVal, newVal]) => {
+					const rowArr = data[row];
+					return {
+						date: rowArr[0],
+						budget_type: rowArr[1],
+						field: cols[col].field,
+						old_value: oldVal,
+						new_value: newVal,
+					};
+				})
+				// Фильтрация «пустых» и несущественных изменений
+				.filter(
+					({ old_value, new_value }) =>
+						!(old_value === null && new_value === '') && old_value !== new_value,
+				);
+
+			if (payload.length === 0) {
+				console.log('Изменений нет');
+				return;
+			}
+
+			// Отправляем только изменённые ячейки
+			frappe.call({
+				method: 'adr_erp.budget.budget_api.save_budget_changes',
+				args: {
+					organization_bank_rule_name: organization_bank_rule_name,
+					changes: payload,
+				},
+				callback: () => {
+					console.log('Изменения отправлены');
+				},
+			});
+		}, 300),
+
+		licenseKey: 'non-commercial-and-evaluation',
+	};
+
+	if (window.hotInstance) {
+		window.hotInstance.updateSettings(hotSettings);
+		window.hotInstance.loadData(message.data);
+	} else {
+		window.hotInstance = new Handsontable(container, hotSettings);
 	}
+
 	scrollToCurrentDate();
 }
 
@@ -337,9 +359,15 @@ function setup_excel_editor_table(organization_bank_rule_name) {
 			organization_bank_rule_name: organization_bank_rule_name,
 		})
 		.then((r) => {
-			initHandsontableInstance(r.message);
+			initHandsontableInstance(r.message, organization_bank_rule_name);
 		});
 }
+
+frappe.realtime.on('budget_data_updated', (msg) => {
+	console.log(msg);
+	// Только люди с этой вкладкой (где мы подписались) увидят событие
+	window.setup_excel_editor_table(msg.organization_bank_rule_name);
+});
 
 window.setup_excel_editor_table = setup_excel_editor_table;
 attachResizeListener();
