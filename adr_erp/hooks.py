@@ -146,6 +146,14 @@ add_to_apps_screen = [
 # 	}
 # }
 
+doc_events = {
+	"Budget operation": {
+		# срабатывает и при создании, и при обновлении
+		"on_update": "adr_erp.budget.budget_api.publish_budget_change_by_doc",
+		"on_trash": "adr_erp.budget.budget_api.publish_budget_change_by_doc",
+	}
+}
+
 # Scheduled Tasks
 # ---------------
 

@@ -25,6 +25,7 @@ def fetch_budget_operations(organization_bank_rule_name, start_date, end_date):
 		],
 		order_by="date asc",
 		fields=[
+			"name",
 			"date",
 			"budget_operation_type",  # исправлено: используется поле "budget_operation_type" вместо "type"
 			"organization_bank_rule",
@@ -41,6 +42,7 @@ def fetch_budget_operations(organization_bank_rule_name, start_date, end_date):
 		# Если поле пустое, заменяем на пустую строку
 		for field in ("expense_item", "description", "comment", "recipient_of_transit_payment"):
 			op[field] = op.get(field) or ""
+
 	return ops
 
 
@@ -150,6 +152,17 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 			}
 		)
 
+		# Колонка для name (идентификатор)
+		comm_label = _("{0} Name").format(name)
+		colHeaders.append(comm_label)
+		columns.append(
+			{
+				"field": f"{name}_name",
+				"label": comm_label,
+				"type": "text",
+			}
+		)
+
 	return colHeaders, columns
 
 
@@ -164,93 +177,119 @@ def create_empty_row(date_str, op_type, field_to_index, num_columns):
 	"""
 	Создаёт пустую строку с заданными базовыми значениями: датой и типом операции.
 	"""
-	row = [None for _ in range(num_columns)]
+	row = [None] * num_columns
 	row[field_to_index["date"]] = date_str
 	row[field_to_index["budget_operation_type"]] = op_type
 	return row
 
 
-def group_operations(budget_ops, field_to_index, num_columns):
+def fill_row_from_op(row, op, field_to_index):
 	"""
-	Группирует операции по ключу (date, budget_operation_type) и заполняет соответствующие колонки.
+	Дополняет переданную строку row данными операции op.
 
-	Возвращает словарь, где ключ — кортеж (дата, тип операции), а значение — сформированная строка.
+	row             — список значений (строка таблицы), который уже содержит
+	                  date и budget_operation_type.
+	op              — словарь с полями операции, включая:
+	                  "expense_item", "sum", "recipient_of_transit_payment",
+	                  "description", "comment", "name".
+	field_to_index  — маппинг field_name → индекс колонки в row.
+
+	Возвращает ту же строку row, но с подставленными значениями из op.
 	"""
-	grouped = {}
-	for op in budget_ops:
-		key = (op["date"], op["budget_operation_type"])
-		if key not in grouped:
-			grouped[key] = create_empty_row(
-				op["date"], op["budget_operation_type"], field_to_index, num_columns
-			)
-		exp_name = op.get("expense_item")
-		if exp_name and (exp_name in field_to_index):
-			# Обновляем колонку суммы
-			grouped[key][field_to_index[exp_name]] = op.get("sum")
-			# Обновляем колонку транзит, если таковая определена
-			transit_field = f"{exp_name}_transit"
-			if transit_field in field_to_index:
-				grouped[key][field_to_index[transit_field]] = op.get("recipient_of_transit_payment")
-			# Обновляем колонку описания
-			desc_field = f"{exp_name}_description"
-			if desc_field in field_to_index:
-				grouped[key][field_to_index[desc_field]] = op.get("description")
-			# Обновляем колонку комментария
-			comm_field = f"{exp_name}_comment"
-			if comm_field in field_to_index:
-				grouped[key][field_to_index[comm_field]] = op.get("comment")
-	return grouped
+	base = op.get("expense_item")
+	if not base:
+		return row
+
+	# Сумма
+	if base in field_to_index:
+		row[field_to_index[base]] = op.get("sum", row[field_to_index[base]])
+
+	# Transit
+	tfield = f"{base}_transit"
+	if tfield in field_to_index:
+		row[field_to_index[tfield]] = op.get("recipient_of_transit_payment", row[field_to_index[tfield]])
+
+	# Description
+	dfield = f"{base}_description"
+	if dfield in field_to_index:
+		row[field_to_index[dfield]] = op.get("description", row[field_to_index[dfield]])
+
+	# Comment
+	cfield = f"{base}_comment"
+	if cfield in field_to_index:
+		row[field_to_index[cfield]] = op.get("comment", row[field_to_index[cfield]])
+
+	# Name (идентификатор)
+	nfield = f"{base}_name"
+	if nfield in field_to_index:
+		row[field_to_index[nfield]] = op.get("name", row[field_to_index[nfield]])
+
+	return row
 
 
 @frappe.whitelist()
 def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
-	"""
-	Возвращает данные бюджетных операций для Handsontable.
-
-	Результирующий словарь содержит:
-	  - data: список строк с данными,
-	  - colHeaders: заголовки колонок,
-	  - columns: описание колонок (формат, тип и пр.).
-	"""
 	result = {"data": [], "colHeaders": [], "columns": [], "operationTypeNames": []}
 
 	DAYS = 7
-	current_date = date.today()
-	start_date = current_date - timedelta(days=DAYS)
-	end_date = current_date + timedelta(days=DAYS)
+	today = date.today()
+	start_date, end_date = today - timedelta(days=DAYS), today + timedelta(days=DAYS)
+	dates = get_date_range(start_date, end_date)
 
-	# Получаем диапазон дат
-	date_range = get_date_range(start_date, end_date)
-
-	# Получаем данные
+	# Получаем исходные данные и метаданные
 	budget_ops = fetch_budget_operations(organization_bank_rule_name, start_date, end_date)
-	operation_type_names = get_operation_types()
-	organization_bank_rules_names = get_bank_rules()
-	available_expense_items = get_available_expense_items(organization_bank_rule_name)
+	types = frappe.get_list("Budget operation types", fields=["type_name"], order_by="priority asc")
+	types = [t["type_name"] for t in types]
+	rules = frappe.get_list("Organization-Bank Rules", fields=["name"], order_by="creation asc")
+	rules = [r["name"] for r in rules]
+	items = get_available_expense_items(organization_bank_rule_name)
 
-	# Формируем заголовки и колонки
-	colHeaders, columns = build_columns_and_headers(
-		operation_type_names, available_expense_items, organization_bank_rules_names
-	)
-	result["colHeaders"] = colHeaders
-	result["columns"] = columns
-	result["operationTypeNames"] = operation_type_names
+	# Заголовки и колонки
+	colHeaders, columns = build_columns_and_headers(types, items, rules)
+	result.update({"colHeaders": colHeaders, "columns": columns, "operationTypeNames": types})
 
-	# Создаём маппинг для быстрого доступа к индексам колонок
-	field_to_index = build_field_to_index(columns)
-	num_columns = len(colHeaders)
+	# Индексы для полей
+	idx_map = build_field_to_index(columns)
+	num_cols = len(columns)
 
-	# Группируем бюджетные операции по (дата, бюджет_operation_type)
-	grouped_ops = group_operations(budget_ops, field_to_index, num_columns)
+	# Группируем по (date,type)
+	grouped = {}
+	for op in budget_ops:
+		key = (op["date"], op["budget_operation_type"])
+		grouped.setdefault(key, []).append(op)
 
-	# Формируем итоговые данные: для каждой даты и для каждого типа операции
-	for dt in date_range:
-		for op_type in operation_type_names:
-			key = (dt, op_type)
-			if key in grouped_ops:
-				result["data"].append(grouped_ops[key])
+	# Формируем строки: если несколько ops под одним key — выдаем несколько строк
+	for dt in dates:
+		for t in types:
+			key = (dt, t)
+			ops_list = grouped.get(key, [])
+
+			# Список строк для этой комбинации (date, type)
+			rows_for_key = []
+
+			# Проходим по всем операциям
+			for op in ops_list:
+				placed = False
+				# Ищем существующую строку с пустым местом для этого expense_item
+				for row in rows_for_key:
+					if row[idx_map[op["expense_item"]]] is None:
+						# дополняем найденную строку
+						fill_row_from_op(row, op, idx_map)
+						placed = True
+						break
+
+				if not placed:
+					# ни в одной из существующих строк нет свободного места — создаём новую
+					new_row = create_empty_row(dt, t, idx_map, num_cols)
+					fill_row_from_op(new_row, op, idx_map)
+					rows_for_key.append(new_row)
+
+			if rows_for_key:
+				# добавляем все заполненные строки
+				result["data"].extend(rows_for_key)
 			else:
-				result["data"].append(create_empty_row(dt, op_type, field_to_index, num_columns))
+				# если операций нет — одна пустая строка
+				result["data"].append(create_empty_row(dt, t, idx_map, num_cols))
 
 	return result
 
@@ -258,71 +297,68 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
 @frappe.whitelist()
 def save_budget_changes(organization_bank_rule_name, changes):
 	"""
-	changes — список dict-ов:
-	  {
-	        date: '2025-04-22',
-	        budget_type: '…',
-	        field: 'ExpenseItemName' или 'ExpenseItemName_comment' и т.п.,
-	        old_value: ...,
-	        new_value: ...
-	  }
+	Принимает список изменений с полями:
+	  name, date, budget_type, expense_item,
+	  sum, recipient_of_transit_payment,
+	  description, comment
+	Обновляет существующие Budget operation или создаёт новые.
 	"""
 	import json
 
 	from frappe.utils import flt
 
+	# changes уже приходит как list[dict], не нужно json.loads
 	changes = json.loads(changes)
 
-	# Для каждого изменения — найти или создать Budget operation
 	for ch in changes:
+		# ch теперь dict, а не строка
 		date = ch.get("date")
 		op_type = ch.get("budget_type")
-		field = ch.get("field")
-		val = ch.get("new_value")
+		expense_item = ch.get("expense_item")
+		value_sum = ch.get("sum")
+		transit = ch.get("recipient_of_transit_payment")
+		desc = ch.get("description")
+		comm = ch.get("comment")
+		name = ch.get("name")
 
-		# ищем запись Budget operation
-		op = frappe.get_all(
-			"Budget operation",
-			filters={
-				"date": date,
-				"budget_operation_type": op_type,
-				"organization_bank_rule": organization_bank_rule_name,
-				"expense_item": field.split("_")[0],  # например, 'Rent' из 'Rent_comment'
-			},
-			limit=1,
-			pluck="name",
-		)
-		if op:
-			doc = frappe.get_doc("Budget operation", op[0])
-		else:
-			# если нет — создаём новую операцию
-			doc = frappe.get_doc(
-				{
-					"doctype": "Budget operation",
-					"date": date,
-					"budget_operation_type": op_type,
-					"organization_bank_rule": organization_bank_rule_name,
-					"expense_item": field.split("_")[0],
-				}
-			)
+		# Попытаться загрузить по имени, если передан
+		doc = None
+		if name:
+			try:
+				doc = frappe.get_doc("Budget operation", name)
+			except frappe.DoesNotExistError:
+				doc = None
 
-		# сопоставляем field → атрибут DocType
-		if field.endswith("_transit"):
-			doc.recipient_of_transit_payment = val or ""
-		elif field.endswith("_description"):
-			doc.description = val or ""
-		elif field.endswith("_comment"):
-			doc.comment = val or ""
-		else:
-			# это поле суммы
-			doc.sum = flt(val or 0)
+		# Если не нашли — создаём новую
+		if not doc:
+			doc = frappe.new_doc("Budget operation")
+			doc.date = date
+			doc.budget_operation_type = op_type
+			doc.organization_bank_rule = organization_bank_rule_name
+			doc.expense_item = expense_item
 
-		doc.save()
+		# Записываем поля
+		doc.sum = flt(value_sum or 0)
+		doc.recipient_of_transit_payment = transit or ""
+		doc.description = desc or ""
+		doc.comment = comm or ""
+		doc.save(ignore_permissions=True)
 
-	# после сохранения разошлём событие всем клиентам
-	frappe.publish_realtime(
-		event="budget_data_updated",
-		message={"organization_bank_rule_name": organization_bank_rule_name},
-		user=None,  # всем
-	)
+	# # После всего — рассылаем realtime-уведомление
+	# publish_budget_change(organization_bank_rule_name)
+
 	return {"success": True}
+
+
+def publish_budget_change(organization_bank_rule_name):
+	channel = "budget_data_updated"
+	frappe.publish_realtime(
+		event=channel, message={"organization_bank_rule_name": organization_bank_rule_name}, user=None
+	)
+
+
+def publish_budget_change_by_doc(doc, method):
+	organization_bank_rule_name = doc.get("organization_bank_rule")
+	if not organization_bank_rule_name:
+		return
+	publish_budget_change(organization_bank_rule_name)

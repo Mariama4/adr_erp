@@ -1,10 +1,11 @@
-import Handsontable from 'handsontable';
+import Handsontable from "handsontable";
+import { AutoRowSize } from "handsontable/plugins";
 
-const container = document.querySelector('.budget_operations_excel_editor_table');
-const mainSection = document.querySelector('body > div.main-section');
-const bodySidebar = document.querySelector('body > div.body-sidebar-container');
-const stickyTop = document.querySelector('body > div.main-section > div.sticky-top');
-const bodyEl = document.querySelector('#body');
+const container = document.querySelector(".budget_operations_excel_editor_table");
+const mainSection = document.querySelector("body > div.main-section");
+const bodySidebar = document.querySelector("body > div.body-sidebar-container");
+const stickyTop = document.querySelector("body > div.main-section > div.sticky-top");
+const bodyEl = document.querySelector("#body");
 
 window.hotInstance = null;
 
@@ -17,13 +18,13 @@ window.hotInstance = null;
 function restoreDatesInData(data) {
 	if (!Array.isArray(data)) return data;
 	let lastDate = null;
-	for (let i = 0; i < data.length; i++) {
-		if (data[i][0]) {
-			lastDate = data[i][0];
+	data.forEach((row) => {
+		if (row[0]) {
+			lastDate = row[0];
 		} else {
-			data[i][0] = lastDate;
+			row[0] = lastDate;
 		}
-	}
+	});
 	return data;
 }
 
@@ -32,36 +33,37 @@ function restoreDatesInData(data) {
  * @param {Array} data - Массив данных таблицы.
  * @returns {Array} mergeCells - Конфигурация объединения ячеек.
  */
-function getMergeCellsConfig(data) {
+function getMergeCellsConfig(data, dateColIndex = 0) {
 	if (!Array.isArray(data) || data.length === 0) return [];
-	const mergeCells = [];
-	let startRow = 0;
-	// Проходим до i <= data.length для обработки последней группы
+	const merge = [];
+	let start = 0;
 	for (let i = 1; i <= data.length; i++) {
-		if (i === data.length || data[i][0] !== data[startRow][0]) {
-			const groupLength = i - startRow;
-			if (groupLength > 1) {
-				mergeCells.push({
-					row: startRow,
-					col: 0,
-					rowspan: groupLength,
-					colspan: 1,
-				});
+		const current = i < data.length ? data[i][dateColIndex] : null;
+		if (i === data.length || current !== data[start][dateColIndex]) {
+			const span = i - start;
+			if (span > 1) {
+				merge.push({ row: start, col: dateColIndex, rowspan: span, colspan: 1 });
 			}
-			startRow = i;
+			start = i;
 		}
 	}
-	return mergeCells;
+	return merge;
 }
 
 /**
  * Определяет индексы столбцов, которые нужно скрыть.
- * @param {Array} colHeaders - Массив заголовков столбцов.
+ * @param {} message - .
  * @returns {Array} hiddenIndices - Массив индексов скрытых столбцов.
  */
-function getHiddenColumnsIndices(colHeaders) {
+function getHiddenColumnsIndices(colHeaders, data) {
 	return colHeaders.reduce((acc, header, index) => {
-		if (header.includes(__('Comment'))) {
+		if (
+			header.includes(__("Comment")) &&
+			!data.some((row) => row[index] != null && row[index] !== "")
+		) {
+			acc.push(index);
+		}
+		if (header.includes("Name") && header.endsWith("Name")) {
 			acc.push(index);
 		}
 		return acc;
@@ -124,7 +126,7 @@ function getContextMenuSettings(operationTypeNames = []) {
 	return {
 		items: {
 			add_col_comment: {
-				name: __('Add comment'),
+				name: __("Add comment"),
 				callback: function (key, selection) {
 					let hiddenCols = this.getSettings().hiddenColumns.columns || [];
 					let newHiddenCols = Array.isArray(hiddenCols) ? [...hiddenCols] : [];
@@ -132,7 +134,7 @@ function getContextMenuSettings(operationTypeNames = []) {
 						let targetCol = sel.end.col;
 						let checkRange = 3;
 						const nextColHeader = this.getColHeader(targetCol + 1);
-						if (nextColHeader && nextColHeader.includes(__('Transit'))) {
+						if (nextColHeader && nextColHeader.includes(__("Transit"))) {
 							checkRange = 4;
 						}
 						while (
@@ -141,7 +143,7 @@ function getContextMenuSettings(operationTypeNames = []) {
 						) {
 							if (newHiddenCols.includes(targetCol)) {
 								newHiddenCols = newHiddenCols.filter(
-									(colIndex) => colIndex !== targetCol,
+									(colIndex) => colIndex !== targetCol
 								);
 								break;
 							}
@@ -180,19 +182,18 @@ function debounce(func, delay) {
  * Ожидается, что message имеет ключи: data, columns, colHeaders, operationTypeNames.
  */
 function initHandsontableInstance(message, organization_bank_rule_name) {
-	// Если не переданы значения, используем пустые массивы.
-	message.data = message.data || [];
-	message.columns = message.columns || [];
-	message.colHeaders = message.colHeaders || [];
-
-	// Извлекаем массив типов операций
+	const raw = (message.data || []).map((r) => [...r]);
+	const data = restoreDatesInData(raw);
+	const colHeaders = message.colHeaders || [];
+	const cols = message.columns || [];
 	const opTypes = Array.isArray(message.operationTypeNames) ? message.operationTypeNames : [];
 
-	// Восстанавливаем даты в данных, чтобы не было пропусков в первой колонке.
-	message.data = restoreDatesInData(message.data);
+	const colsMetaSettings = cols;
+	const rowData = data;
+	const dateColIndex = cols.findIndex((c) => c.field === "date");
 
-	const mergeCellsConfig = getMergeCellsConfig(message.data);
-	const hiddenColumnsIndices = getHiddenColumnsIndices(message.colHeaders);
+	const mergeCells = getMergeCellsConfig(data, dateColIndex);
+	const hiddenCols = getHiddenColumnsIndices(colHeaders, data);
 	const { width, height } = calculateDimensions();
 	const contextMenuSettings = getContextMenuSettings(opTypes);
 
@@ -203,108 +204,95 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 		rowHeaders: true,
 		autoWrapRow: true,
 		autoWrapCol: true,
-		colWidths: [105, 50].concat(
-			Array.from({ length: message.columns.length - 2 }, (_, i) => [100, 150, 150][i % 3]),
+		manualColumnResize: true,
+		colWidths: [105, 60].concat(
+			Array.from({ length: message.columns.length - 2 }, (_, i) => [100, 150, 150][i % 3])
 		),
 		colHeaders: message.colHeaders,
-		mergeCells: mergeCellsConfig,
+		mergeCells: mergeCells,
 		width: width,
 		height: height,
 		contextMenu: contextMenuSettings,
 		hiddenColumns: {
-			columns: hiddenColumnsIndices,
+			columns: hiddenCols,
 			indicators: false,
+			copyPasteEnabled: false,
 		},
-		viewportColumnRenderingOffset: 0,
 		viewportRowRenderingOffset: 0,
-
-		// Блокируем вставку через Ctrl+V в колонках select/dropdown
-		beforePaste: function (data, coords) {
-			const colsMeta = this.getSettings().columns;
-
-			coords.forEach((range) => {
-				const { startRow, startCol, endRow, endCol } = range;
-
-				for (let r = startRow; r <= endRow; r++) {
-					for (let c = startCol; c <= endCol; c++) {
-						const colMeta = colsMeta[c];
-						if (
-							colMeta &&
-							(colMeta.type === 'dropdown' || colMeta.type === 'select')
-						) {
-							// вычисляем позицию в data: смещение по рядам и колонкам от начала диапазона
-							const dataRow = r - startRow;
-							const dataCol = c - startCol;
-							// заменяем то, что хотел вставить пользователь, на текущее значение ячейки
-							data[dataRow][dataCol] = this.getDataAtCell(r, c);
-						}
-					}
-				}
-			});
-		},
+		maxRows: message.data.length,
+		allowInvalid: false,
 
 		afterGetColHeader: function (col, TH) {
 			if (col >= 0) {
-				TH.style.fontWeight = 'bold';
-				TH.style.textAlign = 'center';
-				const headerText = TH.innerText || '';
-				if (headerText.includes(__('Comment')) || headerText.includes(__('Description'))) {
-					TH.style.backgroundColor = '#FFCCCC';
+				TH.style.fontWeight = "bold";
+				TH.style.textAlign = "center";
+				const headerText = TH.innerText || "";
+				if (headerText.includes(__("Comment")) || headerText.includes(__("Description"))) {
+					TH.style.backgroundColor = "#FFCCCC";
 				} else {
-					TH.style.backgroundColor = '#d3d3d3';
+					TH.style.backgroundColor = "#d3d3d3";
 				}
 			}
 		},
 
 		// Обработчик изменений в таблице. Если изменения были внесены пользователем,
 		// собираем payload и отправляем на сервер.
-		afterChange: debounce(function (changes, source) {
-			if (!changes || !['edit', 'CopyPaste.paste'].includes(source)) return;
+		afterChange: (changes, source) => {
+			if (!changes || !["edit", "CopyPaste.paste"].includes(source)) return;
 
-			const hot = window.hotInstance;
-			const cols = hot.getSettings().columns;
-			// Берём «сырые» данные и делаем их копию, чтобы не портить исходник
-			const rawData = hot.getSourceData().map((row) => [...row]);
-			// Восстанавливаем даты
-			const data = restoreDatesInData(rawData);
+			// Получаем свежие данные с учетом восстановления дат
+			const freshRaw = window.hotInstance.getSourceData().map((r) => [...r]);
+			const freshData = restoreDatesInData(freshRaw);
 
-			// Составляем массив изменений
-			let payload = changes
-				.map(([row, col, oldVal, newVal]) => {
-					const rowArr = data[row];
-					return {
-						date: rowArr[0],
-						budget_type: rowArr[1],
-						field: cols[col].field,
-						old_value: oldVal,
-						new_value: newVal,
-					};
-				})
-				// Фильтрация «пустых» и несущественных изменений
-				.filter(
-					({ old_value, new_value }) =>
-						!(old_value === null && new_value === '') && old_value !== new_value,
-				);
+			// Индекс даты
+			const dateIdx = colsMetaSettings.findIndex((c) => c.field === "date");
 
-			if (payload.length === 0) {
-				console.log('Изменений нет');
-				return;
-			}
-
-			// Отправляем только изменённые ячейки
-			frappe.call({
-				method: 'adr_erp.budget.budget_api.save_budget_changes',
-				args: {
-					organization_bank_rule_name: organization_bank_rule_name,
-					changes: payload,
-				},
-				callback: () => {
-					console.log('Изменения отправлены');
-				},
+			// Группируем изменения по строке и expense_item
+			const groups = {};
+			changes.forEach(([row, col]) => {
+				const field = colsMetaSettings[col].field;
+				const base = field.split("_")[0];
+				const key = `${row}|${base}`;
+				groups[key] = row;
 			});
-		}, 300),
 
-		licenseKey: 'non-commercial-and-evaluation',
+			// Формируем payload для каждой группы
+			const payload = Object.keys(groups).map((key) => {
+				const rowIndex = groups[key];
+				const rowArr = freshData[rowIndex];
+				const date = rowArr[dateIdx];
+				const budget_type = rowArr[1];
+				const base = key.split("|")[1];
+
+				const findField = (name) => colsMetaSettings.findIndex((c) => c.field === name);
+				const idIdx = findField(`${base}_name`);
+				const sumIdx = findField(base);
+				const transitIdx = findField(`${base}_transit`);
+				const descIdx = findField(`${base}_description`);
+				const commIdx = findField(`${base}_comment`);
+
+				return {
+					name: idIdx >= 0 ? rowArr[idIdx] : null,
+					date,
+					budget_type,
+					expense_item: base,
+					sum: rowArr[sumIdx],
+					recipient_of_transit_payment: rowArr[transitIdx],
+					description: rowArr[descIdx],
+					comment: rowArr[commIdx],
+				};
+			});
+
+			console.log(payload);
+
+			if (!payload.length) return;
+			frappe.call({
+				method: "adr_erp.budget.budget_api.save_budget_changes",
+				args: { organization_bank_rule_name, changes: payload },
+			});
+		},
+
+		licenseKey: "non-commercial-and-evaluation",
 	};
 
 	if (window.hotInstance) {
@@ -312,9 +300,8 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 		window.hotInstance.loadData(message.data);
 	} else {
 		window.hotInstance = new Handsontable(container, hotSettings);
+		scrollToCurrentDate();
 	}
-
-	scrollToCurrentDate();
 }
 
 /**
@@ -323,8 +310,8 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 function scrollToCurrentDate() {
 	const now = new Date();
 	const year = now.getFullYear();
-	const month = (now.getMonth() + 1).toString().padStart(2, '0');
-	const day = now.getDate().toString().padStart(2, '0');
+	const month = (now.getMonth() + 1).toString().padStart(2, "0");
+	const day = now.getDate().toString().padStart(2, "0");
 	const currentDate = `${year}-${month}-${day}`;
 	const rowIndex = window.hotInstance.getSourceData().findIndex((row) => row[0] === currentDate);
 	if (rowIndex >= 0) {
@@ -336,7 +323,7 @@ function scrollToCurrentDate() {
  * Привязывает обработчик изменения размеров окна для обновления настроек Handsontable.
  */
 function attachResizeListener() {
-	window.addEventListener('resize', () => {
+	window.addEventListener("resize", () => {
 		if (window.hotInstance) {
 			const { width, height } = calculateDimensions();
 			window.hotInstance.updateSettings({
@@ -355,7 +342,7 @@ function attachResizeListener() {
  */
 function setup_excel_editor_table(organization_bank_rule_name) {
 	frappe
-		.call('adr_erp.budget.budget_api.get_budget_plannig_data_for_handsontable', {
+		.call("adr_erp.budget.budget_api.get_budget_plannig_data_for_handsontable", {
 			organization_bank_rule_name: organization_bank_rule_name,
 		})
 		.then((r) => {
@@ -363,10 +350,18 @@ function setup_excel_editor_table(organization_bank_rule_name) {
 		});
 }
 
-frappe.realtime.on('budget_data_updated', (msg) => {
-	console.log(msg);
-	// Только люди с этой вкладкой (где мы подписались) увидят событие
-	window.setup_excel_editor_table(msg.organization_bank_rule_name);
+// оборачиваем реальный обновлятор в debounce
+const debouncedUpdate = debounce((rule) => {
+	frappe.show_alert({
+		message: __("Data updated"),
+		indicator: "blue",
+	});
+	window.setup_excel_editor_table(rule);
+}, 1000); // 5 сек
+
+frappe.realtime.on("budget_data_updated", (msg) => {
+	// если придёт 100 событий подряд, за 5 сек вызовется только один раз
+	debouncedUpdate(msg.organization_bank_rule_name);
 });
 
 window.setup_excel_editor_table = setup_excel_editor_table;
