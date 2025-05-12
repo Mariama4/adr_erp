@@ -1,5 +1,4 @@
 import Handsontable from "handsontable";
-import { AutoRowSize } from "handsontable/plugins";
 
 const container = document.querySelector(".budget_operations_excel_editor_table");
 const mainSection = document.querySelector("body > div.main-section");
