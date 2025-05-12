@@ -249,6 +249,8 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 
 			// Индекс даты
 			const dateIdx = colsMetaSettings.findIndex((c) => c.field === "date");
+			const rowCount = freshData.length;
+			const colCount = colsMetaSettings.length;
 
 			// Сначала строим маппинг rowIndex -> порядковый номер в группе (date|type)
 			const rowOrdinalMap = {};
@@ -264,6 +266,10 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 			// Группируем изменения по строке и expense_item
 			const groups = {};
 			changes.forEach(([row, col]) => {
+				if (row < 0 || row >= rowCount || col < 0 || col >= colCount) {
+					// пропускаем некорректные координаты
+					return;
+				}
 				const field = colsMetaSettings[col].field;
 				const base = field.split("_")[0];
 				const key = `${row}|${base}`;
