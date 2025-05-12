@@ -344,9 +344,6 @@ def save_budget_changes(organization_bank_rule_name, changes):
 		doc.comment = comm or ""
 		doc.save(ignore_permissions=True)
 
-	# # После всего — рассылаем realtime-уведомление
-	# publish_budget_change(organization_bank_rule_name)
-
 	return {"success": True}
 
 
