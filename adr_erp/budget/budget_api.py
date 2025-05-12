@@ -23,7 +23,6 @@ def fetch_budget_operations(organization_bank_rule_name, start_date, end_date):
 			["date", "<=", end_date.strftime("%Y-%m-%d")],
 			["organization_bank_rule", "=", organization_bank_rule_name],
 		],
-		order_by="date asc",
 		fields=[
 			"name",
 			"date",
