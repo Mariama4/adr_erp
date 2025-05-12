@@ -13,7 +13,8 @@
   "expense_item",
   "recipient_of_transit_payment",
   "description",
-  "comment"
+  "comment",
+  "group_index"
  ],
  "fields": [
   {
@@ -76,12 +77,22 @@
    "label": "Type",
    "options": "Budget operation types",
    "reqd": 1
+  },
+  {
+   "fieldname": "group_index",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Group index",
+   "non_negative": 1,
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-07 15:25:21.671988",
+ "modified": "2025-05-12 15:18:26.262018",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Budget operation",
