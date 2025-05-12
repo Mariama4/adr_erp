@@ -33,6 +33,7 @@ def fetch_budget_operations(organization_bank_rule_name, start_date, end_date):
 			"recipient_of_transit_payment",
 			"description",
 			"comment",
+			"group_index",
 		],
 	)
 	for op in ops:
@@ -82,7 +83,7 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 	  colHeaders - список заголовков,
 	  columns - список описаний колонок (тип, формат, настройки).
 	"""
-	colHeaders = [_("Date"), _("Budget Operation Type")]
+	colHeaders = [_("Date"), _("Budget Operation Type"), _("Group Index")]
 	columns = [
 		{
 			"field": "date",
@@ -172,13 +173,14 @@ def build_field_to_index(columns):
 	return {col["field"]: idx for idx, col in enumerate(columns)}
 
 
-def create_empty_row(date_str, op_type, field_to_index, num_columns):
+def create_empty_row(date_str, op_type, field_to_index, num_columns, group_index=0):
 	"""
 	Создаёт пустую строку с заданными базовыми значениями: датой и типом операции.
 	"""
 	row = [None] * num_columns
 	row[field_to_index["date"]] = date_str
 	row[field_to_index["budget_operation_type"]] = op_type
+	row[field_to_index["group_index"]] = group_index
 	return row
 
 
@@ -257,40 +259,29 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
 		key = (op["date"], op["budget_operation_type"])
 		grouped.setdefault(key, []).append(op)
 
-	# Формируем строки: если несколько ops под одним key — выдаем несколько строк
+	# Основная логика: для каждой пары (dt, type) создаём ровно
+	# max(group_index)+1 строк и заполняем их по индексу
 	for dt in dates:
 		for t in types:
 			key = (dt, t)
 			ops_list = grouped.get(key, [])
 
-			# Список строк для этой комбинации (date, type)
-			rows_for_key = []
-
-			# Проходим по всем операциям
-			for op in ops_list:
-				placed = False
-				# Ищем существующую строку с пустым местом для этого expense_item
-				for row in rows_for_key:
-					if op["expense_item"] == "":
-						break
-					if row[idx_map[op["expense_item"]]] is None:
-						# дополняем найденную строку
-						fill_row_from_op(row, op, idx_map)
-						placed = True
-						break
-
-				if not placed:
-					# ни в одной из существующих строк нет свободного места — создаём новую
-					new_row = create_empty_row(dt, t, idx_map, num_cols)
-					fill_row_from_op(new_row, op, idx_map)
-					rows_for_key.append(new_row)
-
-			if rows_for_key:
-				# добавляем все заполненные строки
+			if ops_list:
+				# узнаём, сколько строк нужно: от 0 до max(group_index)
+				max_idx = max(op.get("group_index", 0) for op in ops_list)
+				rows_for_key = []
+				# инициализируем пустые строки с нужным group_index
+				for gi in range(0, max_idx + 1):
+					rows_for_key.append(create_empty_row(dt, t, idx_map, num_cols, gi))
+				# заполняем каждую строку по её group_index
+				for op in ops_list:
+					gi = op.get("group_index", 0)
+					fill_row_from_op(rows_for_key[gi], op, idx_map)
+				# добавляем все заполненные ряды
 				result["data"].extend(rows_for_key)
 			else:
-				# если операций нет — одна пустая строка
-				result["data"].append(create_empty_row(dt, t, idx_map, num_cols))
+				# ни одной операции — одна пустая строка с group_index=0
+				result["data"].append(create_empty_row(dt, t, idx_map, num_cols, 0))
 
 	return result
 
@@ -301,18 +292,22 @@ def save_budget_changes(organization_bank_rule_name, changes):
 	Принимает список изменений с полями:
 	  name, date, budget_type, expense_item,
 	  sum, recipient_of_transit_payment,
-	  description, comment
-	Обновляет существующие Budget operation или создаёт новые.
+	  description, comment, group_index
+
+	Создаёт новые Budget operation с вычисленным group_index,
+	а для существующих записей group_index не меняет.
 	"""
 	import json
 
 	from frappe.utils import flt
 
-	# changes уже приходит как list[dict], не нужно json.loads
-	changes = json.loads(changes)
+	# Разбираем пришедший JSON
+	try:
+		changes = json.loads(changes)
+	except ValueError:
+		changes = []
 
 	for ch in changes:
-		# ch теперь dict, а не строка
 		date = ch.get("date")
 		op_type = ch.get("budget_type")
 		expense_item = ch.get("expense_item")
@@ -321,8 +316,9 @@ def save_budget_changes(organization_bank_rule_name, changes):
 		desc = ch.get("description")
 		comm = ch.get("comment")
 		name = ch.get("name")
+		group_index = ch.get("group_index")
 
-		# Попытаться загрузить по имени, если передан
+		# Найдём или создадим документ
 		doc = None
 		if name:
 			try:
@@ -330,15 +326,30 @@ def save_budget_changes(organization_bank_rule_name, changes):
 			except frappe.DoesNotExistError:
 				doc = None
 
-		# Если не нашли — создаём новую
+		# Если запись не найдена — создаём новую
 		if not doc:
+			# Если group_index не задан, вычисляем новый
+			if group_index is None:
+				existing = frappe.get_all(
+					"Budget operation",
+					filters={
+						"date": date,
+						"budget_operation_type": op_type,
+						"organization_bank_rule": organization_bank_rule_name,
+					},
+					fields=["group_index"],
+				)
+				idxs = [op.get("group_index") for op in existing if op.get("group_index") is not None]
+				group_index = max(idxs) + 1 if idxs else 0
+
 			doc = frappe.new_doc("Budget operation")
 			doc.date = date
 			doc.budget_operation_type = op_type
 			doc.organization_bank_rule = organization_bank_rule_name
 			doc.expense_item = expense_item
+			doc.group_index = group_index
 
-		# Записываем поля
+		# Записываем остальные поля
 		doc.sum = flt(value_sum or 0)
 		doc.recipient_of_transit_payment = transit or ""
 		doc.description = desc or ""
