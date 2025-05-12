@@ -92,12 +92,26 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 			"dateFormat": "YYYY-MM-DD",
 			"correctFormat": True,
 			"allowInvalid": False,
+			"readOnly": True,
+			"className": "htCenter htMiddle",
 		},
 		{
 			"field": "budget_operation_type",
 			"label": _("Budget Operation Type"),
 			"type": "dropdown",
 			"source": operation_type_names,
+			"readOnly": True,
+			"className": "htCenter htMiddle",
+		},
+		{
+			"field": "group_index",
+			"label": _("Group Index"),
+			"type": "numeric",
+			"readOnly": True,
+			"className": "htCenter htMiddle",
+			"numericFormat": {
+				"pattern": "0,0.00",
+			},
 		},
 	]
 
@@ -114,6 +128,10 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 				"label": name,
 				"type": "numeric",
 				"allowInvalid": False,
+				"className": "htCenter htRight",
+				"numericFormat": {
+					"pattern": "0,0.00",
+				},
 			}
 		)
 
@@ -127,6 +145,7 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 					"label": transit_label,
 					"type": "dropdown",
 					"source": organization_bank_rules_names,
+					"className": "htCenter htMiddle",
 				}
 			)
 
@@ -138,6 +157,7 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 				"field": f"{name}_description",
 				"label": desc_label,
 				"type": "text",
+				"className": "htLeft",
 			}
 		)
 
@@ -149,6 +169,7 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 				"field": f"{name}_comment",
 				"label": comm_label,
 				"type": "text",
+				"className": "htLeft",
 			}
 		)
 
@@ -160,6 +181,8 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 				"field": f"{name}_name",
 				"label": comm_label,
 				"type": "text",
+				"readOnly": True,
+				"className": "htCenter htMiddle",
 			}
 		)
 
@@ -248,12 +271,10 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
 	# Заголовки и колонки
 	colHeaders, columns = build_columns_and_headers(types, items, rules)
 	result.update({"colHeaders": colHeaders, "columns": columns, "operationTypeNames": types})
-
-	# Индексы для полей
 	idx_map = build_field_to_index(columns)
 	num_cols = len(columns)
 
-	# Группируем по (date,type)
+	# Группируем по (date, type)
 	grouped = {}
 	for op in budget_ops:
 		key = (op["date"], op["budget_operation_type"])
