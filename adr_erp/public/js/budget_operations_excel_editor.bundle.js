@@ -90,7 +90,7 @@ function calculateDimensions() {
  * @param {Array} operationTypeNames - Массив строк с типами операций.
  * @returns {Object} contextMenuSettings
  */
-function getContextMenuSettings(operationTypeNames = []) {
+function getContextMenuSettings(operationTypeNames = [], organization_bank_rule_name = null) {
 	const newRowSubmenu = {};
 	operationTypeNames.forEach((opType) => {
 		newRowSubmenu[`add_new_row_${opType}`] = {
@@ -101,23 +101,24 @@ function getContextMenuSettings(operationTypeNames = []) {
 				// Используем индекс последней строки выделенного диапазона
 				let selectedIndexRow = selection[selection.length - 1].end.row;
 				let selectedRow = tableData[selectedIndexRow];
-				// Создаем новую строку, заполняя все ячейки значением null
-				let newRow = Array(hot.getSettings().colHeaders.length).fill(null);
-				newRow[0] = selectedRow[0];
-				newRow[1] = opType;
-				// Добавляем новую строку в конец данных
-				tableData.push(newRow);
-				// Сортируем данные: сначала по дате, затем по порядку типов (в соответствии с operationTypeNames)
-				tableData.sort((a, b) => {
-					const dateCompare = a[0].localeCompare(b[0]);
-					if (dateCompare !== 0) return dateCompare;
-					let aTypeIndex = operationTypeNames.indexOf(a[1]);
-					let bTypeIndex = operationTypeNames.indexOf(b[1]);
-					return aTypeIndex - bTypeIndex;
+				// Формируем payload для каждой группы
+				const payload = [
+					{
+						name: null,
+						date: selectedRow[0],
+						budget_type: opType,
+						expense_item: null,
+						sum: null,
+						recipient_of_transit_payment: null,
+						description: null,
+						comment: null,
+					},
+				];
+
+				frappe.call({
+					method: "adr_erp.budget.budget_api.save_budget_changes",
+					args: { organization_bank_rule_name, changes: payload },
 				});
-				// Обновляем таблицу
-				hot.loadData(tableData);
-				hot.updateSettings({ mergeCells: getMergeCellsConfig(tableData) });
 			},
 		};
 	});
@@ -194,7 +195,7 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 	const mergeCells = getMergeCellsConfig(data, dateColIndex);
 	const hiddenCols = getHiddenColumnsIndices(colHeaders, data);
 	const { width, height } = calculateDimensions();
-	const contextMenuSettings = getContextMenuSettings(opTypes);
+	const contextMenuSettings = getContextMenuSettings(opTypes, organization_bank_rule_name);
 
 	const hotSettings = {
 		data: message.data,
