@@ -252,10 +252,10 @@ def fill_row_from_op(row, op, field_to_index):
 
 
 @frappe.whitelist()
-def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
+def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number_of_days):
 	result = {"data": [], "colHeaders": [], "columns": [], "operationTypeNames": []}
 
-	DAYS = 7
+	DAYS = int(number_of_days)
 	today = date.today()
 	start_date, end_date = today - timedelta(days=DAYS), today + timedelta(days=DAYS)
 	dates = get_date_range(start_date, end_date)

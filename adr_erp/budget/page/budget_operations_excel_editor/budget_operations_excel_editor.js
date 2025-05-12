@@ -43,21 +43,47 @@ const PageContent = Class.extend({
 			})
 			.then((records) => {
 				const organization_bank_rules_select = records.map((record) => record.name);
-				const default_value = organization_bank_rules_select[0];
+				window.current_organization_bank_rules_select = organization_bank_rules_select[0];
 
+				window.current_number_of_days_select = "7";
+
+				this.page.set_indicator(__("Online"), "green");
 				this.page.add_field({
 					label: __("Organization Bank Rules"),
 					fieldtype: "Select",
 					fieldname: "organization_bank_rules_select",
 					options: organization_bank_rules_select.join("\n"),
-					default: default_value,
+					default: window.current_organization_bank_rules_select,
 					change() {
-						// При изменении значения поля обновляем таблицу
-						window.setup_excel_editor_table(this.get_value());
+						window.current_organization_bank_rules_select = this.get_value();
+						window.setup_excel_editor_table(
+							window.current_organization_bank_rules_select,
+							window.current_number_of_days_select
+						);
 					},
 				});
+
+				const nums = Array.from({ length: 99 }, (_, i) => i + 1).join("\n");
+				this.page.add_field({
+					label: __("Select number of days"),
+					fieldtype: "Select",
+					fieldname: "number_of_days_select",
+					options: nums,
+					default: window.current_number_of_days_select,
+					change() {
+						window.current_number_of_days_select = this.get_value();
+						window.setup_excel_editor_table(
+							window.current_organization_bank_rules_select,
+							window.current_number_of_days_select
+						);
+					},
+				});
+
 				try {
-					window.setup_excel_editor_table(default_value);
+					window.setup_excel_editor_table(
+						window.current_organization_bank_rules_select,
+						window.current_number_of_days_select
+					);
 				} catch {
 					window.location.reload();
 				}

@@ -354,10 +354,11 @@ function attachResizeListener() {
  *
  * @param {String} organization_bank_rule_name - Имя документа правил организации.
  */
-function setup_excel_editor_table(organization_bank_rule_name) {
+function setup_excel_editor_table(organization_bank_rule_name, number_of_days) {
 	frappe
 		.call("adr_erp.budget.budget_api.get_budget_plannig_data_for_handsontable", {
 			organization_bank_rule_name: organization_bank_rule_name,
+			number_of_days: number_of_days,
 		})
 		.then((r) => {
 			initHandsontableInstance(r.message, organization_bank_rule_name);
@@ -365,17 +366,17 @@ function setup_excel_editor_table(organization_bank_rule_name) {
 }
 
 // оборачиваем реальный обновлятор в debounce
-const debouncedUpdate = debounce((rule) => {
+const debouncedUpdate = debounce((rule, number_of_days) => {
 	frappe.show_alert({
 		message: __("Data updated"),
 		indicator: "blue",
 	});
-	window.setup_excel_editor_table(rule);
+	window.setup_excel_editor_table(rule, number_of_days);
 }, 1000); // 5 сек
 
 frappe.realtime.on("budget_data_updated", (msg) => {
 	// если придёт 100 событий подряд, за 5 сек вызовется только один раз
-	debouncedUpdate(msg.organization_bank_rule_name);
+	debouncedUpdate(msg.organization_bank_rule_name, window.current_number_of_days_select);
 });
 
 window.setup_excel_editor_table = setup_excel_editor_table;
