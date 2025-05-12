@@ -272,6 +272,8 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name):
 				placed = False
 				# Ищем существующую строку с пустым местом для этого expense_item
 				for row in rows_for_key:
+					if op["expense_item"] == "":
+						break
 					if row[idx_map[op["expense_item"]]] is None:
 						# дополняем найденную строку
 						fill_row_from_op(row, op, idx_map)
