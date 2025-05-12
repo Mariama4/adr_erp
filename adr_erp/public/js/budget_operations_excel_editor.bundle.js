@@ -65,6 +65,9 @@ function getHiddenColumnsIndices(colHeaders, data) {
 		if (header.includes("Name") && header.endsWith("Name")) {
 			acc.push(index);
 		}
+		if (header == __("Group Index")) {
+			acc.push(index);
+		}
 		return acc;
 	}, []);
 }
@@ -107,6 +110,7 @@ function getContextMenuSettings(operationTypeNames = [], organization_bank_rule_
 						name: null,
 						date: selectedRow[0],
 						budget_type: opType,
+						group_index: null,
 						expense_item: null,
 						sum: null,
 						recipient_of_transit_payment: null,
@@ -205,7 +209,7 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 		autoWrapRow: true,
 		autoWrapCol: true,
 		manualColumnResize: true,
-		colWidths: [105, 60].concat(
+		colWidths: [105, 60, 60].concat(
 			Array.from({ length: message.columns.length - 2 }, (_, i) => [100, 150, 150][i % 3])
 		),
 		colHeaders: message.colHeaders,
@@ -221,7 +225,6 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 		viewportRowRenderingOffset: 0,
 		maxRows: message.data.length,
 		allowInvalid: false,
-
 		afterGetColHeader: function (col, TH) {
 			if (col >= 0) {
 				TH.style.fontWeight = "bold";
@@ -240,12 +243,23 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 		afterChange: (changes, source) => {
 			if (!changes || !["edit", "CopyPaste.paste"].includes(source)) return;
 
-			// Получаем свежие данные с учетом восстановления дат
+			// Получаем свежие данные с учётом восстановления дат
 			const freshRaw = window.hotInstance.getSourceData().map((r) => [...r]);
 			const freshData = restoreDatesInData(freshRaw);
 
 			// Индекс даты
 			const dateIdx = colsMetaSettings.findIndex((c) => c.field === "date");
+
+			// Сначала строим маппинг rowIndex -> порядковый номер в группе (date|type)
+			const rowOrdinalMap = {};
+			const groupCounters = {}; // key -> next ordinal
+			freshData.forEach((row, idx) => {
+				const key = `${row[dateIdx]}|${row[1]}`; // date|budget_type
+				if (!(key in groupCounters)) {
+					groupCounters[key] = 0;
+				}
+				rowOrdinalMap[idx] = groupCounters[key]++;
+			});
 
 			// Группируем изменения по строке и expense_item
 			const groups = {};
@@ -280,10 +294,12 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 					recipient_of_transit_payment: rowArr[transitIdx],
 					description: rowArr[descIdx],
 					comment: rowArr[commIdx],
+					group_index: rowOrdinalMap[rowIndex], // добавили порядковый номер
 				};
 			});
 
 			if (!payload.length) return;
+
 			frappe.call({
 				method: "adr_erp.budget.budget_api.save_budget_changes",
 				args: { organization_bank_rule_name, changes: payload },
