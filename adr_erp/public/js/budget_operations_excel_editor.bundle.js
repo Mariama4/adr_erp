@@ -282,8 +282,6 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 				};
 			});
 
-			console.log(payload);
-
 			if (!payload.length) return;
 			frappe.call({
 				method: "adr_erp.budget.budget_api.save_budget_changes",
