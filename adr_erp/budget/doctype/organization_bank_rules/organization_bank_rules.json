@@ -18,7 +18,7 @@
    "in_preview": 1,
    "in_standard_filter": 1,
    "label": "Organization",
-   "options": "Organization",
+   "options": "Organizations",
    "reqd": 1
   },
   {
@@ -29,20 +29,20 @@
    "in_preview": 1,
    "in_standard_filter": 1,
    "label": "Bank",
-   "options": "Bank",
+   "options": "Banks",
    "reqd": 1
   },
   {
    "fieldname": "available_expense_items",
    "fieldtype": "Table MultiSelect",
    "label": "Available Expense items",
-   "options": "Link Expense Item"
+   "options": "Link Expenses Items"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-13 19:19:58.308162",
+ "modified": "2025-05-13 19:31:06.333816",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Organization-Bank Rules",

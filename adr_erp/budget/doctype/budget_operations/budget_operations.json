@@ -32,7 +32,7 @@
    "in_preview": 1,
    "in_standard_filter": 1,
    "label": "Expense item",
-   "options": "Expense Item"
+   "options": "Expense Items"
   },
   {
    "fieldname": "description",
@@ -92,10 +92,10 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-13 19:11:47.640343",
+ "modified": "2025-05-13 19:30:42.382413",
  "modified_by": "Administrator",
  "module": "Budget",
- "name": "Budget Operation",
+ "name": "Budget Operations",
  "naming_rule": "Autoincrement",
  "owner": "Administrator",
  "permissions": [

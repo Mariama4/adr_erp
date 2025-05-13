@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class ExpenseItem(Document):
+class BudgetOperations(Document):
 	pass

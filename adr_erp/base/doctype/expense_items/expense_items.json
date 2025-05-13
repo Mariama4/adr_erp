@@ -52,7 +52,7 @@
  "modified": "2025-05-13 19:15:10.259539",
  "modified_by": "Administrator",
  "module": "base",
- "name": "Expense Item",
+ "name": "Expense Items",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [

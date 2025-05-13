@@ -11,18 +11,18 @@ EXTRA_TEST_RECORD_DEPENDENCIES = []  # eg. ["User"]
 IGNORE_TEST_RECORD_DEPENDENCIES = []  # eg. ["User"]
 
 
-class UnitTestBank(UnitTestCase):
+class UnitTestBanks(UnitTestCase):
 	"""
-	Unit tests for Bank.
+	Unit tests for Banks.
 	Use this class for testing individual functions and methods.
 	"""
 
 	pass
 
 
-class IntegrationTestBank(IntegrationTestCase):
+class IntegrationTestBanks(IntegrationTestCase):
 	"""
-	Integration tests for Bank.
+	Integration tests for Banks.
 	Use this class for testing interactions between multiple components.
 	"""
 

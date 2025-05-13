@@ -1,7 +1,7 @@
 // Copyright (c) 2025, GeorgyTaskabulov and contributors
 // For license information, please see license.txt
 
-frappe.ui.form.on("Budget Operation", {
+frappe.ui.form.on("Budget Operations", {
 	// При изменении поля expense_item
 	expense_item: function (frm) {
 		if (frm.doc.expense_item) {
