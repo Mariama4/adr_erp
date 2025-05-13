@@ -1,6 +1,5 @@
 {
  "actions": [],
- "allow_rename": 1,
  "autoname": "field:expense_item_name",
  "creation": "2025-03-27 23:14:53.409068",
  "doctype": "DocType",
@@ -16,7 +15,7 @@
    "fieldname": "expense_item_name",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Expense item name",
+   "label": "Expense Item name",
    "reqd": 1,
    "unique": 1
   },
@@ -50,10 +49,10 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-13 14:39:58.498333",
+ "modified": "2025-05-13 19:15:10.259539",
  "modified_by": "Administrator",
  "module": "base",
- "name": "Expense item",
+ "name": "Expense Item",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [

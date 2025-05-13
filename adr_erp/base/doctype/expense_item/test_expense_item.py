@@ -11,18 +11,18 @@ EXTRA_TEST_RECORD_DEPENDENCIES = []  # eg. ["User"]
 IGNORE_TEST_RECORD_DEPENDENCIES = []  # eg. ["User"]
 
 
-class UnitTestExpenseitem(UnitTestCase):
+class UnitTestExpenseItem(UnitTestCase):
 	"""
-	Unit tests for Expenseitem.
+	Unit tests for ExpenseItem.
 	Use this class for testing individual functions and methods.
 	"""
 
 	pass
 
 
-class IntegrationTestExpenseitem(IntegrationTestCase):
+class IntegrationTestExpenseItem(IntegrationTestCase):
 	"""
-	Integration tests for Expenseitem.
+	Integration tests for ExpenseItem.
 	Use this class for testing interactions between multiple components.
 	"""
 
