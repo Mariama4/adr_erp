@@ -11,18 +11,18 @@ EXTRA_TEST_RECORD_DEPENDENCIES = []  # eg. ["User"]
 IGNORE_TEST_RECORD_DEPENDENCIES = []  # eg. ["User"]
 
 
-class UnitTestBudgetoperationtypes(UnitTestCase):
+class UnitTestBudgetOperationTypes(UnitTestCase):
 	"""
-	Unit tests for Budgetoperationtypes.
+	Unit tests for BudgetOperationTypes.
 	Use this class for testing individual functions and methods.
 	"""
 
 	pass
 
 
-class IntegrationTestBudgetoperationtypes(IntegrationTestCase):
+class IntegrationTestBudgetOperationTypes(IntegrationTestCase):
 	"""
-	Integration tests for Budgetoperationtypes.
+	Integration tests for BudgetOperationTypes.
 	Use this class for testing interactions between multiple components.
 	"""
 

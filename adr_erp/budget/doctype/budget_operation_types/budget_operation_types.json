@@ -1,6 +1,5 @@
 {
  "actions": [],
- "allow_rename": 1,
  "autoname": "field:type_name",
  "creation": "2025-04-07 16:29:49.264470",
  "doctype": "DocType",
@@ -31,10 +30,10 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-10 22:18:32.672745",
+ "modified": "2025-05-13 19:20:21.680414",
  "modified_by": "Administrator",
  "module": "Budget",
- "name": "Budget operation types",
+ "name": "Budget Operation Types",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
