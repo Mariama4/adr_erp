@@ -42,10 +42,20 @@ const PageContent = Class.extend({
 				order_by: "creation asc",
 			})
 			.then((records) => {
-				const organization_bank_rules_select = records.map((record) => record.name);
-				window.current_organization_bank_rules_select = organization_bank_rules_select[0];
+				const organization_bank_rules_select = records.map((r) => r.name);
 
-				window.current_number_of_days_select = "7";
+				// Читаем прошлый выбор (если есть)
+				const savedOrg = localStorage.getItem("budget_ops_org");
+				const savedDays = localStorage.getItem("budget_ops_days");
+
+				// Подставляем либо сохранённое, либо первый/7
+				window.current_organization_bank_rules_select =
+					savedOrg && organization_bank_rules_select.includes(savedOrg)
+						? savedOrg
+						: organization_bank_rules_select[0];
+
+				window.current_number_of_days_select =
+					savedDays && +savedDays >= 1 && +savedDays <= 99 ? savedDays : "7";
 
 				this.page.set_indicator(__("Online"), "green");
 				this.page.add_field({
@@ -55,6 +65,7 @@ const PageContent = Class.extend({
 					options: organization_bank_rules_select.join("\n"),
 					default: window.current_organization_bank_rules_select,
 					change() {
+						localStorage.setItem("budget_ops_org", this.get_value());
 						window.current_organization_bank_rules_select = this.get_value();
 						window.setup_excel_editor_table(
 							window.current_organization_bank_rules_select,
@@ -71,6 +82,7 @@ const PageContent = Class.extend({
 					options: nums,
 					default: window.current_number_of_days_select,
 					change() {
+						localStorage.setItem("budget_ops_days", this.get_value());
 						window.current_number_of_days_select = this.get_value();
 						window.setup_excel_editor_table(
 							window.current_organization_bank_rules_select,
