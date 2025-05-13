@@ -256,7 +256,6 @@ def fill_row_from_op(row, op, field_to_index):
 
 @frappe.whitelist()
 def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number_of_days):
-
 	result = {"data": [], "colHeaders": [], "columns": [], "operationTypeNames": []}
 
 	DAYS = int(number_of_days)

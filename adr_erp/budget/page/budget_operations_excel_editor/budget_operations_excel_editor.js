@@ -43,7 +43,6 @@ const PageContent = Class.extend({
 			})
 			.then((records) => {
 				const organization_bank_rules_select = records.map((r) => r.name);
-				console.log(!!organization_bank_rules_select);
 				if (!organization_bank_rules_select) {
 					frappe.msgprint({
 						title: __("Warning"),
