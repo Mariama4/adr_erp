@@ -1,7 +1,6 @@
 {
  "actions": [],
- "allow_rename": 1,
- "autoname": "format:{organization} / {bank}",
+ "autoname": "autoincrement",
  "creation": "2025-03-28 00:18:39.411799",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -14,7 +13,10 @@
   {
    "fieldname": "organization",
    "fieldtype": "Link",
+   "in_filter": 1,
    "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
    "label": "Organization",
    "options": "Organization",
    "reqd": 1
@@ -22,7 +24,10 @@
   {
    "fieldname": "bank",
    "fieldtype": "Link",
+   "in_filter": 1,
    "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
    "label": "Bank",
    "options": "Bank",
    "reqd": 1
@@ -31,17 +36,17 @@
    "fieldname": "available_expense_items",
    "fieldtype": "Table MultiSelect",
    "label": "Available Expense items",
-   "options": "Link Expense item"
+   "options": "Link Expense Item"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-04-10 21:58:11.628465",
+ "modified": "2025-05-13 19:19:58.308162",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Organization-Bank Rules",
- "naming_rule": "Expression",
+ "naming_rule": "Autoincrement",
  "owner": "Administrator",
  "permissions": [
   {
