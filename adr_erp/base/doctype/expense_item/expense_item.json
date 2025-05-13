@@ -27,21 +27,20 @@
    "label": "Is transit"
   },
   {
-   "default": "Credit",
    "fieldname": "entry_type",
    "fieldtype": "Select",
    "in_list_view": 1,
    "in_preview": 1,
    "in_standard_filter": 1,
    "label": "Entry type",
-   "options": "Debit\nCredit",
+   "options": "Credit\nDebit",
    "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-13 13:12:37.672722",
+ "modified": "2025-05-13 14:08:13.264307",
  "modified_by": "Administrator",
  "module": "base",
  "name": "Expense item",
