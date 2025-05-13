@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class LinkExpenseitem(Document):
+class LinkExpenseItem(Document):
 	pass

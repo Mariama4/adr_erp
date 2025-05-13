@@ -12,18 +12,18 @@
   {
    "fieldname": "link_expense_item",
    "fieldtype": "Link",
-   "label": "Link Expense item",
-   "options": "Expense item"
+   "label": "Link Expense Item",
+   "options": "Expense Item"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-03-28 21:55:23.355117",
+ "modified": "2025-05-13 19:18:01.897768",
  "modified_by": "Administrator",
  "module": "base",
- "name": "Link Expense item",
+ "name": "Link Expense Item",
  "owner": "Administrator",
  "permissions": [],
  "row_format": "Dynamic",
