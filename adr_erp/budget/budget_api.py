@@ -71,7 +71,10 @@ def get_available_expense_items(org_bank_rule_name):
 	for item in doc.available_expense_items:
 		link = item.get("link_expense_item")
 		expense_doc = frappe.get_doc("Expense item", link)
-		available_items.append({"name": expense_doc.name, "is_transit": expense_doc.is_transit})
+		available_items.append(
+			{"name": expense_doc.name, "is_transit": expense_doc.is_transit, "priority": expense_doc.priority}
+		)
+	available_items.sort(key=lambda x: x["priority"])
 	return available_items
 
 

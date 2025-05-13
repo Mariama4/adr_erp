@@ -8,7 +8,8 @@
  "field_order": [
   "expense_item_name",
   "is_transit",
-  "entry_type"
+  "entry_type",
+  "priority"
  ],
  "fields": [
   {
@@ -35,12 +36,21 @@
    "label": "Entry type",
    "options": "Credit\nDebit",
    "reqd": 1
+  },
+  {
+   "fieldname": "priority",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "in_preview": 1,
+   "in_standard_filter": 1,
+   "label": "Priority",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-13 14:08:13.264307",
+ "modified": "2025-05-13 14:39:58.498333",
  "modified_by": "Administrator",
  "module": "base",
  "name": "Expense item",
