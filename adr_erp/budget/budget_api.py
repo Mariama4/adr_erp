@@ -17,7 +17,7 @@ def fetch_budget_operations(organization_bank_rule_name, start_date, end_date):
 	Получает бюджетные операции с БД за указанный период и приводит данные к необходимому виду.
 	"""
 	ops = frappe.db.get_list(
-		"Budget operation",
+		"Budget operations",
 		filters=[
 			["date", ">=", start_date.strftime("%Y-%m-%d")],
 			["date", "<=", end_date.strftime("%Y-%m-%d")],
@@ -70,7 +70,7 @@ def get_available_expense_items(org_bank_rule_name):
 	available_items = []
 	for item in doc.available_expense_items:
 		link = item.get("link_expense_item")
-		expense_doc = frappe.get_doc("Expense item", link)
+		expense_doc = frappe.get_doc("Expense Items", link)
 		available_items.append(
 			{"name": expense_doc.name, "is_transit": expense_doc.is_transit, "priority": expense_doc.priority}
 		)
@@ -256,6 +256,7 @@ def fill_row_from_op(row, op, field_to_index):
 
 @frappe.whitelist()
 def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number_of_days):
+
 	result = {"data": [], "colHeaders": [], "columns": [], "operationTypeNames": []}
 
 	DAYS = int(number_of_days)
@@ -265,7 +266,7 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number
 
 	# Получаем исходные данные и метаданные
 	budget_ops = fetch_budget_operations(organization_bank_rule_name, start_date, end_date)
-	types = frappe.get_list("Budget operation types", fields=["type_name"], order_by="priority asc")
+	types = frappe.get_list("Budget Operation Types", fields=["type_name"], order_by="priority asc")
 	types = [t["type_name"] for t in types]
 	rules = frappe.get_list("Organization-Bank Rules", fields=["name"], order_by="creation asc")
 	rules = [r["name"] for r in rules]

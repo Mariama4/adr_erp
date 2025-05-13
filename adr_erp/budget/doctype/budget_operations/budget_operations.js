@@ -6,7 +6,7 @@ frappe.ui.form.on("Budget Operations", {
 	expense_item: function (frm) {
 		if (frm.doc.expense_item) {
 			// Получаем документ Expense item по значению поля expense_item
-			frappe.db.get_doc("Expense item", frm.doc.expense_item).then((doc) => {
+			frappe.db.get_doc("Expense Items", frm.doc.expense_item).then((doc) => {
 				// Если у полученного документа стоит галочка is_transit, показываем поле, иначе скрываем
 				frm.toggle_display("recipient_of_transit_payment", !!doc.is_transit);
 			});
@@ -18,7 +18,7 @@ frappe.ui.form.on("Budget Operations", {
 	// При загрузке/обновлении формы
 	refresh: function (frm) {
 		if (frm.doc.expense_item) {
-			frappe.db.get_doc("Expense item", frm.doc.expense_item).then((doc) => {
+			frappe.db.get_doc("Expense Items", frm.doc.expense_item).then((doc) => {
 				frm.toggle_display("recipient_of_transit_payment", !!doc.is_transit);
 			});
 		} else {

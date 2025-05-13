@@ -37,12 +37,21 @@ const PageContent = Class.extend({
 	make: function () {
 		// Получаем список правил для банка и заполняем select-поле
 		frappe.db
-			.get_list("organization-bank rules", {
+			.get_list("Organization-Bank Rules", {
 				fields: [],
 				order_by: "creation asc",
 			})
 			.then((records) => {
 				const organization_bank_rules_select = records.map((r) => r.name);
+				console.log(!!organization_bank_rules_select);
+				if (!organization_bank_rules_select) {
+					frappe.msgprint({
+						title: __("Warning"),
+						message: __("No 'Organization-Bank Rules' available"),
+						indicator: "yellow",
+					});
+					return;
+				}
 
 				// Читаем прошлый выбор (если есть)
 				const savedOrg = localStorage.getItem("budget_ops_org");

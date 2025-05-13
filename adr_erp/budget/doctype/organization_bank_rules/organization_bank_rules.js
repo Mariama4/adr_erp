@@ -11,7 +11,7 @@ frappe.ui.form.on("Organization-Bank Rules", {
 			.call({
 				method: "frappe.client.get_list",
 				args: {
-					doctype: "Expense Item",
+					doctype: "Expense Items",
 					fields: ["name"], // здесь важно: берем поле name
 					limit_page_length: 0,
 				},
@@ -26,7 +26,6 @@ frappe.ui.form.on("Organization-Bank Rules", {
 				items.forEach((item) => {
 					const row = frm.add_child("available_expense_items");
 					row.link_expense_item = item.name;
-					row.is_transit = 0; // по умолчанию
 				});
 
 				// перерисовываем сетку

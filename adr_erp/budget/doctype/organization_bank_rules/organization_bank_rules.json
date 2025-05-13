@@ -1,6 +1,7 @@
 {
  "actions": [],
- "autoname": "autoincrement",
+ "allow_rename": 1,
+ "autoname": "format:{organization} / {bank}",
  "creation": "2025-03-28 00:18:39.411799",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -42,11 +43,11 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-13 19:31:06.333816",
+ "modified": "2025-05-13 19:47:39.377119",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Organization-Bank Rules",
- "naming_rule": "Autoincrement",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
