@@ -395,3 +395,25 @@ def publish_budget_change_by_update_budget_operation(doc, method):
 	if not organization_bank_rule_name:
 		return
 	publish_budget_change(organization_bank_rule_name)
+
+
+def publish_budget_change_by_update_organization(doc, method):
+	rules = frappe.get_all("Organization-Bank Rules", filters={"organization": doc.name}, pluck="name")
+	for rule in rules:
+		publish_budget_change(rule)
+
+
+def publish_budget_change_by_update_bank(doc, method):
+	rules = frappe.get_all("Organization-Bank Rules", filters={"bank": doc.name}, pluck="name")
+	for rule in rules:
+		publish_budget_change(rule)
+
+
+def publish_budget_change_by_update_expense_item(doc, method):
+	links = frappe.get_all("Organization-Bank Rules", filters={"link_expense_item": doc.name}, pluck="name")
+	for rule in links:
+		publish_budget_change(rule)
+
+
+def publish_budget_change_by_update_organization_bank_rule(doc, method):
+	publish_budget_change(doc.name)
