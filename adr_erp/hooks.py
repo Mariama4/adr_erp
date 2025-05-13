@@ -147,10 +147,10 @@ add_to_apps_screen = [
 # }
 
 doc_events = {
-	"Budget operation": {
+	"Budget Operations": {
 		# срабатывает и при создании, и при обновлении
-		"on_update": "adr_erp.budget.budget_api.publish_budget_change_by_doc",
-		"on_trash": "adr_erp.budget.budget_api.publish_budget_change_by_doc",
+		"on_update": "adr_erp.budget.budget_api.publish_budget_change_by_update_budget_operation",
+		"on_trash": "adr_erp.budget.budget_api.publish_budget_change_by_update_budget_operation",
 	}
 }
 

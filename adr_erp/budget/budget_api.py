@@ -17,7 +17,7 @@ def fetch_budget_operations(organization_bank_rule_name, start_date, end_date):
 	Получает бюджетные операции с БД за указанный период и приводит данные к необходимому виду.
 	"""
 	ops = frappe.db.get_list(
-		"Budget operations",
+		"Budget Operations",
 		filters=[
 			["date", ">=", start_date.strftime("%Y-%m-%d")],
 			["date", "<=", end_date.strftime("%Y-%m-%d")],
@@ -346,7 +346,7 @@ def save_budget_changes(organization_bank_rule_name, changes):
 		doc = None
 		if name:
 			try:
-				doc = frappe.get_doc("Budget operation", name)
+				doc = frappe.get_doc("Budget Operations", name)
 			except frappe.DoesNotExistError:
 				doc = None
 
@@ -355,7 +355,7 @@ def save_budget_changes(organization_bank_rule_name, changes):
 			# Если group_index не задан, вычисляем новый
 			if group_index is None:
 				existing = frappe.get_all(
-					"Budget operation",
+					"Budget Operations",
 					filters={
 						"date": date,
 						"budget_operation_type": op_type,
@@ -366,7 +366,7 @@ def save_budget_changes(organization_bank_rule_name, changes):
 				idxs = [op.get("group_index") for op in existing if op.get("group_index") is not None]
 				group_index = max(idxs) + 1 if idxs else 0
 
-			doc = frappe.new_doc("Budget operation")
+			doc = frappe.new_doc("Budget Operations")
 			doc.date = date
 			doc.budget_operation_type = op_type
 			doc.organization_bank_rule = organization_bank_rule_name
@@ -390,7 +390,7 @@ def publish_budget_change(organization_bank_rule_name):
 	)
 
 
-def publish_budget_change_by_doc(doc, method):
+def publish_budget_change_by_update_budget_operation(doc, method):
 	organization_bank_rule_name = doc.get("organization_bank_rule")
 	if not organization_bank_rule_name:
 		return
