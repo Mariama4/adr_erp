@@ -193,7 +193,6 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 	const opTypes = Array.isArray(message.operationTypeNames) ? message.operationTypeNames : [];
 
 	const colsMetaSettings = cols;
-	const rowData = data;
 	const dateColIndex = cols.findIndex((c) => c.field === "date");
 
 	const mergeCells = getMergeCellsConfig(data, dateColIndex);
@@ -209,7 +208,7 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 		autoWrapRow: true,
 		autoWrapCol: true,
 		manualColumnResize: true,
-		colWidths: [105, 60, 60].concat(
+		colWidths: [105, 60, 60, 105, 105, 105].concat(
 			Array.from({ length: message.columns.length - 2 }, (_, i) => [100, 150, 150][i % 3])
 		),
 		colHeaders: message.colHeaders,
