@@ -42,6 +42,10 @@ function getMergeCellsConfig(data, dateColIndex = 0) {
 			const span = i - start;
 			if (span > 1) {
 				merge.push({ row: start, col: dateColIndex, rowspan: span, colspan: 1 });
+
+				merge.push({ row: start, col: dateColIndex + 3, rowspan: span, colspan: 1 });
+				merge.push({ row: start, col: dateColIndex + 4, rowspan: span, colspan: 1 });
+				merge.push({ row: start, col: dateColIndex + 5, rowspan: span, colspan: 1 });
 			}
 			start = i;
 		}
@@ -377,11 +381,11 @@ const debouncedUpdate = debounce((rule, number_of_days) => {
 		indicator: "blue",
 	});
 	window.setup_excel_editor_table(rule, number_of_days);
-}, 1000); // 5 сек
+}, 1000);
 
 frappe.realtime.on("budget_data_updated", (msg) => {
 	// обновление только нужного
-	if (window.organization_bank_rule_name !== msg.organization_bank_rule_name) {
+	if (window.current_organization_bank_rules_select != msg.organization_bank_rule_name) {
 		return;
 	}
 	// если придёт 100 событий подряд, за 5 сек вызовется только один раз
