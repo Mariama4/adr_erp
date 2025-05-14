@@ -72,7 +72,12 @@ def get_available_expense_items(org_bank_rule_name):
 		link = item.get("link_expense_item")
 		expense_doc = frappe.get_doc("Expense Items", link)
 		available_items.append(
-			{"name": expense_doc.name, "is_transit": expense_doc.is_transit, "priority": expense_doc.priority}
+			{
+				"name": expense_doc.name,
+				"is_transit": expense_doc.is_transit,
+				"priority": expense_doc.priority,
+				"entry_type": expense_doc.entry_type,
+			}
 		)
 	available_items.sort(key=lambda x: x["priority"])
 	return available_items
@@ -137,6 +142,9 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 				},
 			}
 		)
+
+		if expense["entry_type"] == "Balance":
+			continue
 
 		# Если expense item имеет транзитный флаг, добавляем колонку для транзитного платежа.
 		if expense["is_transit"]:
