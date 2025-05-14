@@ -43,7 +43,7 @@ const PageContent = Class.extend({
 			})
 			.then((records) => {
 				const organization_bank_rules_select = records.map((r) => r.name);
-				if (!organization_bank_rules_select) {
+				if (!organization_bank_rules_select.length) {
 					frappe.msgprint({
 						title: __("Warning"),
 						message: __("No 'Organization-Bank Rules' available"),
