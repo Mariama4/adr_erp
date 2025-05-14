@@ -9,7 +9,8 @@
   "expense_item_name",
   "is_transit",
   "entry_type",
-  "priority"
+  "priority",
+  "is_mandatory"
  ],
  "fields": [
   {
@@ -45,12 +46,18 @@
    "in_standard_filter": 1,
    "label": "Priority",
    "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_mandatory",
+   "fieldtype": "Check",
+   "label": "Is mandatory"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-14 14:54:05.183955",
+ "modified": "2025-05-14 15:29:40.368928",
  "modified_by": "Administrator",
  "module": "base",
  "name": "Expense Items",
