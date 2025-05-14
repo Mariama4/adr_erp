@@ -77,6 +77,7 @@ def get_available_expense_items(org_bank_rule_name):
 				"is_transit": expense_doc.is_transit,
 				"priority": expense_doc.priority,
 				"entry_type": expense_doc.entry_type,
+				"is_read_only": expense_doc.is_read_only,
 			}
 		)
 	available_items.sort(key=lambda x: x["priority"])
@@ -140,6 +141,7 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 				"numericFormat": {
 					"pattern": "0,0.00",
 				},
+				"readOnly": expense["is_read_only"],
 			}
 		)
 
