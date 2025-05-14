@@ -324,9 +324,9 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number
 def save_budget_changes(organization_bank_rule_name, changes):
 	"""
 	Принимает список изменений с полями:
-	  name, date, budget_type, expense_item,
-	  sum, recipient_of_transit_payment,
-	  description, comment, group_index
+	        name, date, budget_type, expense_item,
+	        sum, recipient_of_transit_payment,
+	        description, comment, group_index
 
 	Создаёт новые Budget operation с вычисленным group_index,
 	а для существующих записей group_index не меняет.
@@ -344,13 +344,40 @@ def save_budget_changes(organization_bank_rule_name, changes):
 	for ch in changes:
 		date = ch.get("date")
 		op_type = ch.get("budget_type")
-		expense_item = ch.get("expense_item")
+		expense_item = ch.get("expense_item") or ""
 		value_sum = ch.get("sum")
 		transit = ch.get("recipient_of_transit_payment")
 		desc = ch.get("description")
 		comm = ch.get("comment")
 		name = ch.get("name")
 		group_index = ch.get("group_index")
+
+		# Если добавляют "пустую" строку (expense_item пуст)
+		# и для этой date/op_type ещё нет записей — создаём сразу две пустые строки
+		if not expense_item:
+			existing_count = frappe.db.count(
+				"Budget Operations",
+				{
+					"date": date,
+					"budget_operation_type": op_type,
+					"organization_bank_rule": organization_bank_rule_name,
+				},
+			)
+			if existing_count == 0:
+				for idx in (0, 1):
+					new_doc = frappe.new_doc("Budget Operations")
+					new_doc.date = date
+					new_doc.budget_operation_type = op_type
+					new_doc.organization_bank_rule = organization_bank_rule_name
+					new_doc.expense_item = ""
+					new_doc.group_index = idx
+					new_doc.sum = flt(0)
+					new_doc.recipient_of_transit_payment = ""
+					new_doc.description = ""
+					new_doc.comment = ""
+					new_doc.save(ignore_permissions=True)
+				# пропускаем дальнейшую обработку этой "пустой" строки
+				continue
 
 		# Найдём или создадим документ
 		doc = None

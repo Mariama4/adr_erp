@@ -123,6 +123,20 @@ function getContextMenuSettings(operationTypeNames = [], organization_bank_rule_
 					},
 				];
 
+				if (payload[0]["budget_type"] == "План") {
+					payload.push({
+						name: null,
+						date: selectedRow[0],
+						budget_type: "Факт",
+						group_index: null,
+						expense_item: null,
+						sum: null,
+						recipient_of_transit_payment: null,
+						description: null,
+						comment: null,
+					});
+				}
+
 				frappe.call({
 					method: "adr_erp.budget.budget_api.save_budget_changes",
 					args: { organization_bank_rule_name, changes: payload },
