@@ -48,7 +48,7 @@
  "modified": "2025-05-14 15:23:26.265945",
  "modified_by": "Administrator",
  "module": "Budget",
- "name": "Budget Balances",
+ "name": "Budget Operations Balances",
  "naming_rule": "Autoincrement",
  "owner": "Administrator",
  "permissions": [
