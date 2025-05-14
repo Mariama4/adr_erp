@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_rename": 1,
  "autoname": "field:bank_name",
  "creation": "2025-03-27 23:11:13.866616",
  "doctype": "DocType",
@@ -30,7 +31,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-13 19:15:27.071459",
+ "modified": "2025-05-14 13:59:24.730243",
  "modified_by": "Administrator",
  "module": "base",
  "name": "Banks",

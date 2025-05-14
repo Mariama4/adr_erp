@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_rename": 1,
  "autoname": "field:expense_item_name",
  "creation": "2025-03-27 23:14:53.409068",
  "doctype": "DocType",
@@ -49,7 +50,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-13 19:15:10.259539",
+ "modified": "2025-05-14 14:54:05.183955",
  "modified_by": "Administrator",
  "module": "base",
  "name": "Expense Items",
