@@ -381,8 +381,12 @@ const debouncedUpdate = debounce((rule, number_of_days) => {
 }, 1000); // 5 сек
 
 frappe.realtime.on("budget_data_updated", (msg) => {
+	// обновление только нужного
+	if (window.organization_bank_rule_name !== msg.organization_bank_rule_name) {
+		return;
+	}
 	// если придёт 100 событий подряд, за 5 сек вызовется только один раз
-	debouncedUpdate(msg.organization_bank_rule_name, window.current_number_of_days_select);
+	debouncedUpdate(msg.organization_bank_rule_name, window.current_number_of_days_select || "7");
 });
 
 window.setup_excel_editor_table = setup_excel_editor_table;
