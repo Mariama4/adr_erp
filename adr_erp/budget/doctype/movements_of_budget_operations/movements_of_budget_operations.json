@@ -38,7 +38,7 @@
    "fieldname": "budget_balance_type",
    "fieldtype": "Select",
    "in_list_view": 1,
-   "label": "Budget Balance Type",
+   "label": "Budget Operation Movement Type",
    "options": "Balance\nMovement\nTransfer",
    "reqd": 1
   },
@@ -52,7 +52,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-15 16:28:04.830747",
+ "modified": "2025-05-15 16:34:31.420216",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Movements of Budget Operations",
