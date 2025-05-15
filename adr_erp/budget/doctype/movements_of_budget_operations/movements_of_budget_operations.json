@@ -8,7 +8,8 @@
   "date",
   "organization_bank_rule",
   "sum",
-  "budget_balance_type"
+  "budget_balance_type",
+  "budget_operations"
  ],
  "fields": [
   {
@@ -40,15 +41,21 @@
    "label": "Budget Balance Type",
    "options": "Balance\nMovement\nTransfer",
    "reqd": 1
+  },
+  {
+   "fieldname": "budget_operations",
+   "fieldtype": "Table MultiSelect",
+   "label": "Budget Operations",
+   "options": "Link Budget Operations"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-14 15:23:26.265945",
+ "modified": "2025-05-15 16:28:04.830747",
  "modified_by": "Administrator",
  "module": "Budget",
- "name": "Budget Operations Balances",
+ "name": "Movements of Budget Operations",
  "naming_rule": "Autoincrement",
  "owner": "Administrator",
  "permissions": [
