@@ -385,11 +385,31 @@ def save_budget_changes(organization_bank_rule_name, changes):
 		else:
 			create_op(date, "Факт", "", gi)
 
-	def find_existing_doc(name):
+	def find_existing_doc(name, date=None, op_type=None, group_index=None):
 		try:
 			return frappe.get_doc("Budget Operations", name)
 		except frappe.DoesNotExistError:
 			return None
+		except frappe.NotFound:
+			return None
+
+	def find_existing_empty_doc(date, organization_bank_rule_name, op_type, group_index):
+		names = frappe.get_all(
+			"Budget Operations",
+			filters={
+				"date": date,
+				"budget_operation_type": op_type,
+				"organization_bank_rule": organization_bank_rule_name,
+				"group_index": group_index,
+				"expense_item": "",  # empty string, а не None
+			},
+			limit=1,
+			pluck="name",
+		)
+		if names:
+			# теперь уже безопасно получаем doc по имени
+			return frappe.get_doc("Budget Operations", names[0])
+		return None
 
 	def handle_non_empty_change(ch):
 		date = ch["date"]
@@ -398,7 +418,11 @@ def save_budget_changes(organization_bank_rule_name, changes):
 		name = ch.get("name")
 		group_index = ch.get("group_index")
 
-		doc = find_existing_doc(name) if name else None
+		doc = (
+			find_existing_doc(name, date, op_type, group_index)
+			if name
+			else find_existing_empty_doc(date, organization_bank_rule_name, op_type, group_index)
+		)
 
 		if not doc:
 			# вычисляем новый group_index, если не задан
@@ -420,15 +444,15 @@ def save_budget_changes(organization_bank_rule_name, changes):
 			doc.date = date
 			doc.budget_operation_type = op_type
 			doc.organization_bank_rule = organization_bank_rule_name
-			doc.expense_item = expense_item
 			doc.group_index = group_index
 
 		# пишем остальные поля
+		doc.expense_item = expense_item
 		doc.sum = flt(ch.get("sum") or 0)
 		doc.recipient_of_transit_payment = ch.get("recipient_of_transit_payment") or ""
 		doc.description = ch.get("description") or ""
 		doc.comment = ch.get("comment") or ""
-		doc.save(ignore_permissions=True)
+		doc.save()
 
 		# если это План – убеждаемся, что для того же group_index есть Факт
 		if doc.budget_operation_type == "План":
