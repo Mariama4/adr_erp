@@ -324,9 +324,9 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number
 def save_budget_changes(organization_bank_rule_name, changes):
 	"""
 	Принимает список изменений с полями:
-	        name, date, budget_type, expense_item,
-	        sum, recipient_of_transit_payment,
-	        description, comment, group_index
+	name, date, budget_type, expense_item,
+	sum, recipient_of_transit_payment,
+	description, comment, group_index
 
 	Создаёт новые Budget operation с вычисленным group_index,
 	а для существующих записей group_index не меняет.
@@ -335,63 +335,76 @@ def save_budget_changes(organization_bank_rule_name, changes):
 
 	from frappe.utils import flt
 
-	# Разбираем пришедший JSON
-	try:
-		changes = json.loads(changes)
-	except ValueError:
-		changes = []
+	def parse_changes(changes_json):
+		try:
+			return json.loads(changes_json)
+		except ValueError:
+			return []
 
-	for ch in changes:
-		date = ch.get("date")
-		op_type = ch.get("budget_type")
-		expense_item = ch.get("expense_item") or ""
-		value_sum = ch.get("sum")
-		transit = ch.get("recipient_of_transit_payment")
-		desc = ch.get("description")
-		comm = ch.get("comment")
+	def count_ops(filters):
+		return frappe.db.count("Budget Operations", filters)
+
+	def get_group_indices(date):
+		ops = frappe.get_all(
+			"Budget Operations",
+			filters={"date": date, "organization_bank_rule": organization_bank_rule_name},
+			fields=["group_index"],
+		)
+		return [op.group_index for op in ops if op.group_index is not None]
+
+	def next_group_index(date):
+		idxs = get_group_indices(date)
+		return max(idxs) + 1 if idxs else 0
+
+	def create_op(date, op_type, expense_item, group_index):
+		doc = frappe.new_doc("Budget Operations")
+		doc.date = date
+		doc.budget_operation_type = op_type
+		doc.organization_bank_rule = organization_bank_rule_name
+		doc.expense_item = expense_item
+		doc.group_index = group_index
+		doc.sum = flt(0)
+		doc.recipient_of_transit_payment = ""
+		doc.description = ""
+		doc.comment = ""
+		doc.save(ignore_permissions=True)
+		return doc
+
+	def handle_empty_change(date, op_type):
+		# если expense_item == ""
+		# 1) при отсут. любых записей – создаём пару план/факт с group_index=0
+		if count_ops({"date": date, "organization_bank_rule": organization_bank_rule_name}) == 0:
+			create_op(date, "План", "", 0)
+			create_op(date, "Факт", "", 0)
+
+		# 2) создаём пустые на новом group_index
+		gi = next_group_index(date)
+		if op_type == "План":
+			create_op(date, "План", "", gi)
+			create_op(date, "Факт", "", gi)
+		else:
+			create_op(date, "Факт", "", gi)
+
+	def find_existing_doc(name):
+		try:
+			return frappe.get_doc("Budget Operations", name)
+		except frappe.DoesNotExistError:
+			return None
+
+	def handle_non_empty_change(ch):
+		date = ch["date"]
+		op_type = ch["budget_type"]
+		expense_item = ch["expense_item"]
 		name = ch.get("name")
 		group_index = ch.get("group_index")
 
-		# Если добавляют "пустую" строку (expense_item пуст)
-		# и для этой date/op_type ещё нет записей — создаём сразу две пустые строки
-		if not expense_item:
-			existing_count = frappe.db.count(
-				"Budget Operations",
-				{
-					"date": date,
-					"budget_operation_type": op_type,
-					"organization_bank_rule": organization_bank_rule_name,
-				},
-			)
-			if existing_count == 0:
-				for idx in (0, 1):
-					new_doc = frappe.new_doc("Budget Operations")
-					new_doc.date = date
-					new_doc.budget_operation_type = op_type
-					new_doc.organization_bank_rule = organization_bank_rule_name
-					new_doc.expense_item = ""
-					new_doc.group_index = idx
-					new_doc.sum = flt(0)
-					new_doc.recipient_of_transit_payment = ""
-					new_doc.description = ""
-					new_doc.comment = ""
-					new_doc.save(ignore_permissions=True)
-				# пропускаем дальнейшую обработку этой "пустой" строки
-				continue
+		doc = find_existing_doc(name) if name else None
 
-		# Найдём или создадим документ
-		doc = None
-		if name:
-			try:
-				doc = frappe.get_doc("Budget Operations", name)
-			except frappe.DoesNotExistError:
-				doc = None
-
-		# Если запись не найдена — создаём новую
 		if not doc:
-			# Если group_index не задан, вычисляем новый
+			# вычисляем новый group_index, если не задан
 			if group_index is None:
-				existing = frappe.get_all(
+				# только для этого date+type
+				idxs = frappe.get_all(
 					"Budget Operations",
 					filters={
 						"date": date,
@@ -400,7 +413,7 @@ def save_budget_changes(organization_bank_rule_name, changes):
 					},
 					fields=["group_index"],
 				)
-				idxs = [op.get("group_index") for op in existing if op.get("group_index") is not None]
+				idxs = [o.group_index for o in idxs if o.group_index is not None]
 				group_index = max(idxs) + 1 if idxs else 0
 
 			doc = frappe.new_doc("Budget Operations")
@@ -410,12 +423,38 @@ def save_budget_changes(organization_bank_rule_name, changes):
 			doc.expense_item = expense_item
 			doc.group_index = group_index
 
-		# Записываем остальные поля
-		doc.sum = flt(value_sum or 0)
-		doc.recipient_of_transit_payment = transit or ""
-		doc.description = desc or ""
-		doc.comment = comm or ""
+		# пишем остальные поля
+		doc.sum = flt(ch.get("sum") or 0)
+		doc.recipient_of_transit_payment = ch.get("recipient_of_transit_payment") or ""
+		doc.description = ch.get("description") or ""
+		doc.comment = ch.get("comment") or ""
 		doc.save(ignore_permissions=True)
+
+		# если это План – убеждаемся, что для того же group_index есть Факт
+		if doc.budget_operation_type == "План":
+			exists = frappe.get_all(
+				"Budget Operations",
+				filters={
+					"date": date,
+					"budget_operation_type": "Факт",
+					"organization_bank_rule": organization_bank_rule_name,
+					"group_index": doc.group_index,
+				},
+				limit=1,
+			)
+			if not exists:
+				create_op(date, "Факт", "", doc.group_index)
+
+	# --- основная логика ---
+	for ch in parse_changes(changes):
+		date = ch.get("date")
+		op_type = ch.get("budget_type")
+		expense_item = ch.get("expense_item") or ""
+
+		if expense_item == "":
+			handle_empty_change(date, op_type)
+		else:
+			handle_non_empty_change(ch)
 
 	return {"success": True}
 
