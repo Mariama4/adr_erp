@@ -383,6 +383,19 @@ const debouncedUpdate = debounce((rule, number_of_days) => {
 	window.setup_excel_editor_table(rule, number_of_days);
 }, 1000);
 
+function forceReload() {
+	frappe.msgprint({
+		title: __("Force Data Update"),
+		message: __("The page will reload in 5 seconds"),
+		indicator: "red", // красный заголовок
+	});
+	setTimeout(() => {
+		window.location.reload(true);
+	}, 5000);
+}
+
+const debouncedForceReload = debounce(forceReload, 1000);
+
 frappe.realtime.on("budget_data_updated", (msg) => {
 	// обновление только нужного
 	if (window.current_organization_bank_rules_select != msg.organization_bank_rule_name) {
@@ -390,6 +403,10 @@ frappe.realtime.on("budget_data_updated", (msg) => {
 	}
 	// если придёт 100 событий подряд, за 5 сек вызовется только один раз
 	debouncedUpdate(msg.organization_bank_rule_name, window.current_number_of_days_select || "7");
+});
+
+frappe.realtime.on("require_budget-operations-excel-editor_refresh", (msg) => {
+	debouncedForceReload();
 });
 
 window.setup_excel_editor_table = setup_excel_editor_table;

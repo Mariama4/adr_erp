@@ -148,24 +148,21 @@ add_to_apps_screen = [
 
 doc_events = {
 	"Organizations": {
-		"on_update": "adr_erp.budget.budget_api.publish_budget_change_by_update_organization",
-		"on_trash": "adr_erp.budget.budget_api.publish_budget_change_by_update_organization",
+		"after_rename": "adr_erp.budget.budget_api.publish_budget_change_by_rename_organization",
 	},
 	"Banks": {
-		"on_update": "adr_erp.budget.budget_api.publish_budget_change_by_update_bank",
-		"on_trash": "adr_erp.budget.budget_api.publish_budget_change_by_update_bank",
+		"after_rename": "adr_erp.budget.budget_api.publish_budget_change_by_rename_bank",
 	},
 	"Expense Items": {
 		"on_update": "adr_erp.budget.budget_api.publish_budget_change_by_update_expense_item",
-		"on_trash": "adr_erp.budget.budget_api.publish_budget_change_by_update_expense_item",
 	},
 	"Organization-Bank Rules": {
+		"after_rename": "adr_erp.budget.budget_api.publish_budget_change_by_rename_organization_bank_rule",
 		"on_update": "adr_erp.budget.budget_api.publish_budget_change_by_update_organization_bank_rule",
-		"on_trash": "adr_erp.budget.budget_api.publish_budget_change_by_update_organization_bank_rule",
+		"on_trash": "adr_erp.budget.budget_api.publish_budget_change_by_trash_organization_bank_rule",
 	},
 	"Budget Operations": {
 		"on_update": "adr_erp.budget.budget_api.publish_budget_change_by_update_budget_operation",
-		"on_trash": "adr_erp.budget.budget_api.publish_budget_change_by_update_budget_operation",
 	},
 }
 

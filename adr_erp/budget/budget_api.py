@@ -490,6 +490,11 @@ def publish_budget_change(organization_bank_rule_name):
 	)
 
 
+def publish_budget_page_refresh():
+	channel = "require_budget-operations-excel-editor_refresh"
+	frappe.publish_realtime(event=channel, message={}, user=None)
+
+
 def publish_budget_change_by_update_budget_operation(doc, method):
 	organization_bank_rule_name = doc.get("organization_bank_rule")
 	if not organization_bank_rule_name:
@@ -497,16 +502,52 @@ def publish_budget_change_by_update_budget_operation(doc, method):
 	publish_budget_change(organization_bank_rule_name)
 
 
-def publish_budget_change_by_update_organization(doc, method):
-	rules = frappe.get_all("Organization-Bank Rules", filters={"organization": doc.name}, pluck="name")
-	for rule in rules:
-		publish_budget_change(rule)
+def get_autoname_pattern(doctype):
+	"""Вернёт строку из поля Autoname у DocType."""
+	return frappe.db.get_value("DocType", doctype, "autoname")
 
 
-def publish_budget_change_by_update_bank(doc, method):
-	rules = frappe.get_all("Organization-Bank Rules", filters={"bank": doc.name}, pluck="name")
-	for rule in rules:
-		publish_budget_change(rule)
+def apply_format(template, context):
+	"""
+	Подставляет значения из context в шаблон
+	вида "format:{organization} / {bank}".
+	"""
+	# отбросить префикс "format:"
+	if template.startswith("format:"):
+		template = template[len("format:") :]
+	# теперь можно использовать стандартный str.format
+	try:
+		return template.format(**context)
+	except KeyError as e:
+		# если в context не нашлось какого-то ключа, можно
+		# либо выбросить понятную ошибку, либо подставить пустую строку
+		missing = e.args[0]
+		raise ValueError(f"В шаблоне не найдено значение для '{missing}'")
+
+
+def generate_new_name(doctype, doc):
+	"""
+	Даст новое уникальное имя для документа doc.doctype
+	по его текущему правилу автонейма.
+	"""
+	pattern = get_autoname_pattern(doctype)
+	return apply_format(pattern, {"organization": doc.organization, "bank": doc.bank})
+
+
+def publish_budget_change_by_rename_organization(doc, method, after_rename, before_rename, merge):
+	rule_name = frappe.get_all("Organization-Bank Rules", filters={"organization": doc.name}, pluck="name")
+	for old_rule_name in rule_name:
+		rule = frappe.get_doc("Organization-Bank Rules", old_rule_name)
+		new_rule_name = generate_new_name(rule.doctype, rule)
+		frappe.rename_doc(rule.doctype, old_rule_name, new_rule_name, merge=False)
+
+
+def publish_budget_change_by_rename_bank(doc, method, after_rename, before_rename, merge):
+	rule_name = frappe.get_all("Organization-Bank Rules", filters={"bank": doc.name}, pluck="name")
+	for old_rule_name in rule_name:
+		rule = frappe.get_doc("Organization-Bank Rules", old_rule_name)
+		new_rule_name = generate_new_name(rule.doctype, rule)
+		frappe.rename_doc(rule.doctype, old_rule_name, new_rule_name, merge=False)
 
 
 def publish_budget_change_by_update_expense_item(doc, method):
@@ -517,3 +558,11 @@ def publish_budget_change_by_update_expense_item(doc, method):
 
 def publish_budget_change_by_update_organization_bank_rule(doc, method):
 	publish_budget_change(doc.name)
+
+
+def publish_budget_change_by_rename_organization_bank_rule(doc, method, after_rename, before_rename, merge):
+	publish_budget_page_refresh()
+
+
+def publish_budget_change_by_trash_organization_bank_rule(doc, method):
+	publish_budget_page_refresh()
