@@ -163,6 +163,7 @@ doc_events = {
 	},
 	"Budget Operations": {
 		"on_update": "adr_erp.budget.budget_api.publish_budget_change_by_update_budget_operation",
+		"on_trash": "adr_erp.budget.budget_api.publish_budget_change_by_update_budget_operation",
 	},
 }
 

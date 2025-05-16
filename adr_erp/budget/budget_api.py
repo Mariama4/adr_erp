@@ -1,6 +1,7 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import frappe
+import pytz
 from frappe import _
 
 
@@ -144,9 +145,6 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 				"readOnly": expense["is_read_only"],
 			}
 		)
-
-		if expense["entry_type"] == "Balance":
-			continue
 
 		# Если expense item имеет транзитный флаг, добавляем колонку для транзитного платежа.
 		if expense["is_transit"]:
@@ -495,10 +493,284 @@ def publish_budget_page_refresh():
 	frappe.publish_realtime(event=channel, message={}, user=None)
 
 
+# 1
+def calculate_movement_type_movement_of_budget_operations(organization_bank_rule_name, target_date):
+	today_msk = datetime.now(pytz.timezone("Europe/Moscow")).date()
+
+	current_budget_operations_movements = 0
+	used_budget_operations = []
+
+	# Если не сегодня и ранее, тогда считаем только по "Факт"
+	# Если не сегодня и позднее, тогда считаем только по "План"
+	# ...
+	if target_date > today_msk:
+		budget_operations = frappe.get_all(
+			"Budget Operations",
+			filters=[
+				["organization_bank_rule", "=", organization_bank_rule_name],
+				["date", "=", target_date],
+				["sum", ">", 0],
+				["budget_operation_type", "=", "План"],
+			],
+			fields=[
+				"name",
+				"date",
+				"budget_operation_type",
+				"organization_bank_rule",
+				"sum",
+				"expense_item",
+				"recipient_of_transit_payment",
+				"group_index",
+			],
+		)
+		for budget_operation in budget_operations:
+			# План
+			entry_type = frappe.get_value("Expense items", budget_operation.expense_item, "entry_type")
+			if entry_type == "Debit":
+				current_budget_operations_movements += budget_operation.sum
+			elif entry_type == "Credit":
+				current_budget_operations_movements -= budget_operation.sum
+			used_budget_operations.append(budget_operation.name)
+	elif target_date < today_msk:
+		budget_operations = frappe.get_all(
+			"Budget Operations",
+			filters=[
+				["organization_bank_rule", "=", organization_bank_rule_name],
+				["date", "=", target_date],
+				["sum", ">", 0],
+				["budget_operation_type", "=", "Факт"],
+			],
+			fields=[
+				"name",
+				"date",
+				"budget_operation_type",
+				"organization_bank_rule",
+				"sum",
+				"expense_item",
+				"recipient_of_transit_payment",
+				"group_index",
+			],
+		)
+		for budget_operation in budget_operations:
+			# Факт
+			entry_type = frappe.get_value("Expense items", budget_operation.expense_item, "entry_type")
+			if entry_type == "Debit":
+				current_budget_operations_movements += budget_operation.sum
+			elif entry_type == "Credit":
+				current_budget_operations_movements -= budget_operation.sum
+			used_budget_operations.append(budget_operation.name)
+	else:
+		grouped_budget_operations = frappe.get_all(
+			"Budget Operations",
+			filters=[
+				["organization_bank_rule", "=", organization_bank_rule_name],
+				["date", "=", target_date],
+				["sum", ">", 0],
+			],
+			fields=[
+				"expense_item",
+				"group_index",
+			],
+			distinct=True,
+		)
+		for group_budget_operation in grouped_budget_operations:
+			budget_operations = frappe.get_all(
+				"Budget Operations",
+				filters=[
+					["organization_bank_rule", "=", organization_bank_rule_name],
+					["date", "=", target_date],
+					["sum", ">", 0],
+					["expense_item", "=", group_budget_operation.expense_item],
+					["group_index", "=", group_budget_operation.group_index],
+				],
+				fields=[
+					"name",
+					"date",
+					"budget_operation_type",
+					"organization_bank_rule",
+					"sum",
+					"expense_item",
+					"recipient_of_transit_payment",
+					"group_index",
+				],
+			)
+			allowed_budget_operation_type = (
+				"Факт"
+				if any(
+					[
+						budget_operation.budget_operation_type == "Факт"
+						for budget_operation in budget_operations
+					]
+				)
+				is True
+				else "План"
+			)
+			for budget_operation in budget_operations:
+				if budget_operation.budget_operation_type == allowed_budget_operation_type:
+					entry_type = frappe.get_value(
+						"Expense items", budget_operation.expense_item, "entry_type"
+					)
+					if entry_type == "Debit":
+						current_budget_operations_movements += budget_operation.sum
+					elif entry_type == "Credit":
+						current_budget_operations_movements -= budget_operation.sum
+					used_budget_operations.append(budget_operation.name)
+
+	return {
+		"current_budget_operations_movements": current_budget_operations_movements,
+		"used_budget_operations": used_budget_operations,
+	}
+
+
+# 2
+def calculate_transfer_type_movement_of_budget_operations(organization_bank_rule_name, target_date):
+	# так как изменяю другие organization_bank_rule_name, нужно будет находить их и так же все пересчитывать
+	today_msk = datetime.now(pytz.timezone("Europe/Moscow")).date()
+
+	current_budget_operations_transfers = 0
+	used_budget_operations = []
+
+	if target_date > today_msk:
+		budget_operations = frappe.get_all(
+			"Budget Operations",
+			filters=[
+				["date", "=", target_date],
+				["sum", ">", 0],
+				["budget_operation_type", "=", "План"],
+				["recipient_of_transit_payment", "=", "organization_bank_rule_name"],
+			],
+			fields=[
+				"name",
+				"date",
+				"budget_operation_type",
+				"organization_bank_rule",
+				"sum",
+				"expense_item",
+				"recipient_of_transit_payment",
+				"group_index",
+			],
+		)
+		for budget_operation in budget_operations:
+			# План
+			current_budget_operations_transfers += budget_operation.sum
+			used_budget_operations.append(budget_operation.name)
+	elif target_date < today_msk:
+		budget_operations = frappe.get_all(
+			"Budget Operations",
+			filters=[
+				["date", "=", target_date],
+				["sum", ">", 0],
+				["budget_operation_type", "=", "Факт"],
+				["recipient_of_transit_payment", "=", organization_bank_rule_name],
+			],
+			fields=[
+				"name",
+				"date",
+				"budget_operation_type",
+				"organization_bank_rule",
+				"sum",
+				"expense_item",
+				"recipient_of_transit_payment",
+				"group_index",
+			],
+		)
+		for budget_operation in budget_operations:
+			# Факт
+			current_budget_operations_transfers += budget_operation.sum
+			used_budget_operations.append(budget_operation.name)
+	else:
+		grouped_budget_operations = frappe.get_all(
+			"Budget Operations",
+			filters=[
+				["date", "=", target_date],
+				["sum", ">", 0],
+				["recipient_of_transit_payment", "=", organization_bank_rule_name],
+			],
+			fields=[
+				"organization_bank_rule",
+				"expense_item",
+				"group_index",
+			],
+			distinct=True,
+		)
+		for group_budget_operation in grouped_budget_operations:
+			budget_operations = frappe.get_all(
+				"Budget Operations",
+				filters=[
+					["organization_bank_rule", "=", group_budget_operation.organization_bank_rule],
+					["date", "=", target_date],
+					["sum", ">", 0],
+					["expense_item", "=", group_budget_operation.expense_item],
+					["group_index", "=", group_budget_operation.group_index],
+					["recipient_of_transit_payment", "=", organization_bank_rule_name],
+				],
+				fields=[
+					"name",
+					"date",
+					"budget_operation_type",
+					"organization_bank_rule",
+					"sum",
+					"expense_item",
+					"recipient_of_transit_payment",
+					"group_index",
+				],
+			)
+			allowed_budget_operation_type = (
+				"Факт"
+				if any(
+					[
+						budget_operation.budget_operation_type == "Факт"
+						for budget_operation in budget_operations
+					]
+				)
+				is True
+				else "План"
+			)
+			for budget_operation in budget_operations:
+				if budget_operation.budget_operation_type == allowed_budget_operation_type:
+					current_budget_operations_transfers += budget_operation.sum
+					used_budget_operations.append(budget_operation.name)
+
+	return {
+		"current_budget_operations_transfers": current_budget_operations_transfers,
+		"used_budget_operations": used_budget_operations,
+	}
+
+
+# 3
+def calculate_balance_type_movement_of_budget_operations(organization_bank_rule_name, target_date):
+	...
+
+
+def calculate_movements_of_budget_operations(organization_bank_rule_name, date):
+	# BUG: Двойной пересчет из-за создания двойных строк с одной датой
+
+	# Получаем все операции от текущей даты и более
+	dates = frappe.get_all(
+		"Budget Operations",
+		filters=[
+			["date", ">=", date],
+			["organization_bank_rule", "=", organization_bank_rule_name],
+		],
+		fields=[
+			"date",
+		],
+		pluck="date",
+		distinct=True,
+	)
+	dates.sort()
+
+	for date in dates:
+		calculate_movement_type_movement_of_budget_operations(organization_bank_rule_name, date)
+		calculate_transfer_type_movement_of_budget_operations(organization_bank_rule_name, date)
+		calculate_balance_type_movement_of_budget_operations(organization_bank_rule_name, date)
+
+
 def publish_budget_change_by_update_budget_operation(doc, method):
 	organization_bank_rule_name = doc.get("organization_bank_rule")
 	if not organization_bank_rule_name:
 		return
+	calculate_movements_of_budget_operations(organization_bank_rule_name, doc.date)
 	publish_budget_change(organization_bank_rule_name)
 
 
