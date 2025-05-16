@@ -10,7 +10,6 @@
   "is_transit",
   "entry_type",
   "priority",
-  "is_mandatory",
   "is_read_only"
  ],
  "fields": [
@@ -36,7 +35,7 @@
    "in_preview": 1,
    "in_standard_filter": 1,
    "label": "Entry type",
-   "options": "Credit\nDebit\nBalance",
+   "options": "Credit\nDebit",
    "reqd": 1
   },
   {
@@ -50,12 +49,6 @@
   },
   {
    "default": "0",
-   "fieldname": "is_mandatory",
-   "fieldtype": "Check",
-   "label": "Is mandatory"
-  },
-  {
-   "default": "0",
    "fieldname": "is_read_only",
    "fieldtype": "Check",
    "label": "Is read only"
@@ -64,7 +57,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-14 17:24:07.850202",
+ "modified": "2025-05-16 16:53:13.294466",
  "modified_by": "Administrator",
  "module": "base",
  "name": "Expense Items",
