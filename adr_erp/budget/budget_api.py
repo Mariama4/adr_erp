@@ -1,8 +1,10 @@
+import json
 from datetime import date, datetime, timedelta
 
 import frappe
 import pytz
 from frappe import _
+from frappe.utils import flt
 
 
 def get_date_range(start_date, end_date):
@@ -329,9 +331,6 @@ def save_budget_changes(organization_bank_rule_name, changes):
 	Создаёт новые Budget operation с вычисленным group_index,
 	а для существующих записей group_index не меняет.
 	"""
-	import json
-
-	from frappe.utils import flt
 
 	def parse_changes(changes_json):
 		try:
@@ -494,15 +493,35 @@ def publish_budget_page_refresh():
 
 
 # 1
+def calculate_remaining_type_movement_of_budget_operations(organization_bank_rule_name, target_date):
+	previous_target_date = target_date - timedelta(1)
+	rows = frappe.get_all(
+		"Movements of Budget Operations",
+		filters={
+			"organization_bank_rule": organization_bank_rule_name,
+			"date": previous_target_date,
+			"budget_balance_type": "Balance",
+		},
+		fields=["name", "sum"],
+		limit_page_length=1,
+	)
+	if rows:
+		row = rows[0]
+		return {
+			"used_movement_budget_operation": row.get("name"),
+			"current_budget_operations_remainings": flt(row.get("sum") or 0),
+		}
+	else:
+		return {"used_movement_budget_operation": None, "current_budget_operations_remainings": 0.0}
+
+
+# 2
 def calculate_movement_type_movement_of_budget_operations(organization_bank_rule_name, target_date):
 	today_msk = datetime.now(pytz.timezone("Europe/Moscow")).date()
 
 	current_budget_operations_movements = 0
 	used_budget_operations = []
 
-	# Если не сегодня и ранее, тогда считаем только по "Факт"
-	# Если не сегодня и позднее, тогда считаем только по "План"
-	# ...
 	if target_date > today_msk:
 		budget_operations = frappe.get_all(
 			"Budget Operations",
@@ -622,7 +641,7 @@ def calculate_movement_type_movement_of_budget_operations(organization_bank_rule
 	}
 
 
-# 2
+# 3
 def calculate_transfer_type_movement_of_budget_operations(organization_bank_rule_name, target_date):
 	# так как изменяю другие organization_bank_rule_name, нужно будет находить их и так же все пересчитывать
 	today_msk = datetime.now(pytz.timezone("Europe/Moscow")).date()
@@ -737,8 +756,28 @@ def calculate_transfer_type_movement_of_budget_operations(organization_bank_rule
 	}
 
 
-# 3
+# 4
 def calculate_balance_type_movement_of_budget_operations(organization_bank_rule_name, target_date):
+	rows = frappe.get_all(
+		"Movements of Budget Operations",
+		filters={
+			"organization_bank_rule": organization_bank_rule_name,
+			"date": target_date,
+			"budget_balance_type": "Balance",
+		},
+		fields=["name", "sum"],
+		limit_page_length=1,
+	)
+	if rows:
+		row = rows[0]
+		return {"current_budget_operations_remainings": flt(row.get("sum") or 0)}
+	else:
+		return {"current_budget_operations_remainings": 0.0}
+
+
+def save_movement_of_budget_operations(
+	date, organization_bank_rule_name, sum, budget_balance_type, budget_operations
+):
 	...
 
 
@@ -746,7 +785,7 @@ def calculate_movements_of_budget_operations(organization_bank_rule_name, date):
 	# BUG: Двойной пересчет из-за создания двойных строк с одной датой
 
 	# Получаем все операции от текущей даты и более
-	dates = frappe.get_all(
+	date_objs = frappe.get_all(
 		"Budget Operations",
 		filters=[
 			["date", ">=", date],
@@ -758,12 +797,37 @@ def calculate_movements_of_budget_operations(organization_bank_rule_name, date):
 		pluck="date",
 		distinct=True,
 	)
-	dates.sort()
+	# 2) Преобразуем в date-объекты и сортируем
+	date_objs.sort()
 
-	for date in dates:
-		calculate_movement_type_movement_of_budget_operations(organization_bank_rule_name, date)
-		calculate_transfer_type_movement_of_budget_operations(organization_bank_rule_name, date)
-		calculate_balance_type_movement_of_budget_operations(organization_bank_rule_name, date)
+	if not date_objs:
+		return
+
+	# 3) Строим полный интервал от первой до последней даты (включительно)
+	first, last = date_objs[0], date_objs[-1]
+	full_dates = [first + timedelta(days=offset) for offset in range((last - first).days + 1)]
+
+	# 4) Добавляем ещё один день после последней
+	full_dates.append(last + timedelta(days=1))
+
+	# for date in full_dates:
+	# 	# вычислили и сохранили
+
+	# calculated_remaining_type = calculate_remaining_type_movement_of_budget_operations(
+	# 	organization_bank_rule_name, date
+	# )
+
+	# calculated_movement_type = calculate_movement_type_movement_of_budget_operations(
+	# 	organization_bank_rule_name, date
+	# )
+
+	# calculated_transfer_type = calculate_transfer_type_movement_of_budget_operations(
+	# 	organization_bank_rule_name, date
+	# )
+
+	# calculated_balance_type = calculate_balance_type_movement_of_budget_operations(
+	# 	organization_bank_rule_name, date
+	# )
 
 
 def publish_budget_change_by_update_budget_operation(doc, method):
