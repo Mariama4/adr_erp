@@ -1,7 +1,7 @@
 // Copyright (c) 2025, GeorgyTaskabulov and contributors
 // For license information, please see license.txt
 
-frappe.ui.form.on("Organization-Bank Rules", {
+frappe.ui.form.on('Organization-Bank Rules', {
 	refresh(frm) {
 		// только для новой формы
 		if (!frm.is_new()) return;
@@ -9,10 +9,10 @@ frappe.ui.form.on("Organization-Bank Rules", {
 		// получаем все Expense Item
 		frappe
 			.call({
-				method: "frappe.client.get_list",
+				method: 'frappe.client.get_list',
 				args: {
-					doctype: "Expense Items",
-					fields: ["name"], // здесь важно: берем поле name
+					doctype: 'Expense Items',
+					fields: ['name'], // здесь важно: берем поле name
 					limit_page_length: 0,
 				},
 			})
@@ -20,16 +20,16 @@ frappe.ui.form.on("Organization-Bank Rules", {
 				const items = r.message || [];
 
 				// очищаем таблицу
-				frm.clear_table("available_expense_items");
+				frm.clear_table('available_expense_items');
 
 				// создаём новую строку для каждого элемента
 				items.forEach((item) => {
-					const row = frm.add_child("available_expense_items");
+					const row = frm.add_child('available_expense_items');
 					row.link_expense_item = item.name;
 				});
 
 				// перерисовываем сетку
-				frm.refresh_field("available_expense_items");
+				frm.refresh_field('available_expense_items');
 			});
 	},
 });

@@ -12,13 +12,13 @@
  "idx": 0,
  "indicator_color": "green",
  "is_hidden": 0,
- "label": "home",
+ "label": "Home",
  "link_type": "DocType",
  "links": [],
- "modified": "2025-04-02 19:29:51.591803",
+ "modified": "2025-05-20 21:35:56.073633",
  "modified_by": "Administrator",
  "module": "ADR ERP",
- "name": "home",
+ "name": "Home",
  "number_cards": [],
  "owner": "Administrator",
  "parent_page": "",
@@ -35,6 +35,6 @@
    "type": "Page"
   }
  ],
- "title": "home",
+ "title": "Home",
  "type": "Workspace"
 }
