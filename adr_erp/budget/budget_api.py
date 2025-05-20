@@ -364,7 +364,7 @@ def save_budget_changes(organization_bank_rule_name, changes):
 		doc.recipient_of_transit_payment = ""
 		doc.description = ""
 		doc.comment = ""
-		doc.save(ignore_permissions=True)
+		doc.save()
 		return doc
 
 	def handle_empty_change(date, op_type):
@@ -508,11 +508,11 @@ def calculate_remaining_type_movement_of_budget_operations(organization_bank_rul
 	if rows:
 		row = rows[0]
 		return {
-			"used_movement_budget_operation": row.get("name"),
+			"used_movement_budget_operation": [row],
 			"current_budget_operations_remainings": flt(row.get("sum") or 0),
 		}
 	else:
-		return {"used_movement_budget_operation": None, "current_budget_operations_remainings": 0.0}
+		return {"used_movement_budget_operation": [], "current_budget_operations_remainings": 0.0}
 
 
 # 2
@@ -549,7 +549,7 @@ def calculate_movement_type_movement_of_budget_operations(organization_bank_rule
 				current_budget_operations_movements += budget_operation.sum
 			elif entry_type == "Credit":
 				current_budget_operations_movements -= budget_operation.sum
-			used_budget_operations.append(budget_operation.name)
+			used_budget_operations.append(budget_operation)
 	elif target_date < today_msk:
 		budget_operations = frappe.get_all(
 			"Budget Operations",
@@ -577,7 +577,7 @@ def calculate_movement_type_movement_of_budget_operations(organization_bank_rule
 				current_budget_operations_movements += budget_operation.sum
 			elif entry_type == "Credit":
 				current_budget_operations_movements -= budget_operation.sum
-			used_budget_operations.append(budget_operation.name)
+			used_budget_operations.append(budget_operation)
 	else:
 		grouped_budget_operations = frappe.get_all(
 			"Budget Operations",
@@ -633,7 +633,7 @@ def calculate_movement_type_movement_of_budget_operations(organization_bank_rule
 						current_budget_operations_movements += budget_operation.sum
 					elif entry_type == "Credit":
 						current_budget_operations_movements -= budget_operation.sum
-					used_budget_operations.append(budget_operation.name)
+					used_budget_operations.append(budget_operation)
 
 	return {
 		"current_budget_operations_movements": current_budget_operations_movements,
@@ -672,7 +672,7 @@ def calculate_transfer_type_movement_of_budget_operations(organization_bank_rule
 		for budget_operation in budget_operations:
 			# План
 			current_budget_operations_transfers += budget_operation.sum
-			used_budget_operations.append(budget_operation.name)
+			used_budget_operations.append(budget_operation)
 	elif target_date < today_msk:
 		budget_operations = frappe.get_all(
 			"Budget Operations",
@@ -696,7 +696,7 @@ def calculate_transfer_type_movement_of_budget_operations(organization_bank_rule
 		for budget_operation in budget_operations:
 			# Факт
 			current_budget_operations_transfers += budget_operation.sum
-			used_budget_operations.append(budget_operation.name)
+			used_budget_operations.append(budget_operation)
 	else:
 		grouped_budget_operations = frappe.get_all(
 			"Budget Operations",
@@ -748,7 +748,7 @@ def calculate_transfer_type_movement_of_budget_operations(organization_bank_rule
 			for budget_operation in budget_operations:
 				if budget_operation.budget_operation_type == allowed_budget_operation_type:
 					current_budget_operations_transfers += budget_operation.sum
-					used_budget_operations.append(budget_operation.name)
+					used_budget_operations.append(budget_operation)
 
 	return {
 		"current_budget_operations_transfers": current_budget_operations_transfers,
@@ -770,15 +770,56 @@ def calculate_balance_type_movement_of_budget_operations(organization_bank_rule_
 	)
 	if rows:
 		row = rows[0]
-		return {"current_budget_operations_remainings": flt(row.get("sum") or 0)}
+		return {
+			"current_budget_operations_remainings": flt(row.get("sum") or 0),
+			"used_budget_operations": [],
+		}
 	else:
-		return {"current_budget_operations_remainings": 0.0}
+		return {
+			"current_budget_operations_remainings": 0.0,
+			"used_budget_operations": [],
+		}
 
 
 def save_movement_of_budget_operations(
-	date, organization_bank_rule_name, sum, budget_balance_type, budget_operations
+	date, organization_bank_rule, sum, budget_balance_type, budget_operations
 ):
-	...
+	"""
+	Если для заданной (date, organization_bank_rule, budget_balance_type)
+	запись существует — обновляем её, иначе создаём новую.
+	"""
+	# 1) Подготовим фильтры для поиска
+	filters = {
+		"date": date,
+		"organization_bank_rule": organization_bank_rule,
+		"budget_balance_type": budget_balance_type,
+	}
+
+	# 2) Поищем существующую запись
+	existing = frappe.get_all(
+		"Movements of Budget Operations", filters=filters, pluck="name", limit_page_length=1
+	)
+
+	if existing:
+		# 3a) Обновляем существующий документ
+		doc = frappe.get_doc("Movements of Budget Operations", existing[0])
+	else:
+		# 3b) Создаём новую
+		doc = frappe.new_doc("Movements of Budget Operations")
+		doc.date = date
+		doc.organization_bank_rule = organization_bank_rule
+		doc.budget_balance_type = budget_balance_type
+
+	# 4) В обоих случаях обновляем/устанавливаем поля
+	doc.sum = flt(sum or 0)
+
+	# budget_operations — ожидается список имён (["BO-0001", "BO-0002", …])
+	doc.set("budget_operations", [])
+	for budget_operation in budget_operations:
+		doc.append("budget_operations", {"value": budget_operation.name})
+
+	# 5) Сохраняем
+	doc.save()
 
 
 def calculate_movements_of_budget_operations(organization_bank_rule_name, date):
@@ -810,24 +851,54 @@ def calculate_movements_of_budget_operations(organization_bank_rule_name, date):
 	# 4) Добавляем ещё один день после последней
 	full_dates.append(last + timedelta(days=1))
 
-	# for date in full_dates:
-	# 	# вычислили и сохранили
+	for date in full_dates:
+		# вычислили и сохранили
+		calculated_remaining_type = calculate_remaining_type_movement_of_budget_operations(
+			organization_bank_rule_name, date
+		)
+		save_movement_of_budget_operations(
+			date,
+			organization_bank_rule_name,
+			calculated_remaining_type["current_budget_operations_remainings"],
+			"Remaining",
+			calculated_remaining_type["used_movement_budget_operation"],
+		)
 
-	# calculated_remaining_type = calculate_remaining_type_movement_of_budget_operations(
-	# 	organization_bank_rule_name, date
-	# )
+		calculated_movement_type = calculate_movement_type_movement_of_budget_operations(
+			organization_bank_rule_name, date
+		)
 
-	# calculated_movement_type = calculate_movement_type_movement_of_budget_operations(
-	# 	organization_bank_rule_name, date
-	# )
+		save_movement_of_budget_operations(
+			date,
+			organization_bank_rule_name,
+			calculated_movement_type["current_budget_operations_movements"],
+			"Movement",
+			calculated_movement_type["used_budget_operations"],
+		)
 
-	# calculated_transfer_type = calculate_transfer_type_movement_of_budget_operations(
-	# 	organization_bank_rule_name, date
-	# )
+		calculated_transfer_type = calculate_transfer_type_movement_of_budget_operations(
+			organization_bank_rule_name, date
+		)
 
-	# calculated_balance_type = calculate_balance_type_movement_of_budget_operations(
-	# 	organization_bank_rule_name, date
-	# )
+		save_movement_of_budget_operations(
+			date,
+			organization_bank_rule_name,
+			calculated_transfer_type["current_budget_operations_transfers"],
+			"Transfer",
+			calculated_transfer_type["used_budget_operations"],
+		)
+
+		calculated_balance_type = calculate_balance_type_movement_of_budget_operations(
+			organization_bank_rule_name, date
+		)
+
+		save_movement_of_budget_operations(
+			date,
+			organization_bank_rule_name,
+			calculated_balance_type["current_budget_operations_remainings"],
+			"Balance",
+			"",  # баланс зависит от всего выше
+		)
 
 
 def publish_budget_change_by_update_budget_operation(doc, method):
