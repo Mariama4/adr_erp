@@ -6,6 +6,8 @@ import pytz
 from frappe import _
 from frappe.utils import flt
 
+from .utils import timed
+
 
 def get_date_range(start_date, end_date):
 	"""
@@ -319,6 +321,7 @@ def get_budget_operations_types():
 
 
 @frappe.whitelist()
+@timed
 def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number_of_days):
 	result = {"data": [], "colHeaders": [], "columns": [], "operationTypeNames": []}
 
@@ -398,6 +401,7 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number
 
 
 @frappe.whitelist()
+@timed
 def save_budget_changes(organization_bank_rule_name, changes):
 	"""
 	Принимает список изменений с полями:
@@ -899,9 +903,9 @@ def save_movement_of_budget_operations(
 	doc.save()
 
 
+@timed
 def calculate_movements_of_budget_operations(organization_bank_rule_name, target_date):
-	# BUG: Двойной пересчет из-за создания двойных строк с одной датой
-
+	# BUG: Двойной пересчет из-за создания двойных строк с одной датой (Только для дней, с которыми еще не было взаимодействия)
 	today = datetime.now(pytz.timezone("Europe/Moscow")).date()
 	target_date = (
 		datetime.strptime(target_date, "%Y-%m-%d").date() if isinstance(target_date, str) else target_date
@@ -993,9 +997,11 @@ def publish_budget_change_by_update_budget_operation(doc, method):
 	calculate_movements_of_budget_operations(organization_bank_rule_name, doc.date)
 	# Вызываем пересчет у того, кому сделали перевод
 
-	if doc.expense_item != "" and frappe.get_doc("Expense Items", doc.expense_item).is_transit:
-		calculate_movements_of_budget_operations(doc.recipient_of_transit_payment, doc.date)
-		publish_budget_change(doc.recipient_of_transit_payment)
+	if doc.expense_item != "":
+		doc_expense_item = frappe.get_doc("Expense Items", doc.expense_item)
+		if doc_expense_item.is_transit and doc.recipient_of_transit_payment != "":
+			calculate_movements_of_budget_operations(doc.recipient_of_transit_payment, doc.date)
+			publish_budget_change(doc.recipient_of_transit_payment)
 	publish_budget_change(organization_bank_rule_name)
 
 
