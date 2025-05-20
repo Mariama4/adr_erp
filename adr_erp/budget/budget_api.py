@@ -899,31 +899,37 @@ def save_movement_of_budget_operations(
 def calculate_movements_of_budget_operations(organization_bank_rule_name, target_date):
 	# BUG: Двойной пересчет из-за создания двойных строк с одной датой
 
-	# Получаем все операции от текущей даты и более
+	today = datetime.now(pytz.timezone("Europe/Moscow")).date()
+
+	# Если target_date в будущем — используем в качестве точки входа сегодня, иначе — сам target_date
+	start_boundary = today if target_date > today else target_date
+
+	# 1) Берём все даты операций начиная от start_boundary
 	date_objs = frappe.get_all(
 		"Budget Operations",
 		filters=[
-			["date", ">=", target_date],
+			["date", ">=", start_boundary],
 			["organization_bank_rule", "=", organization_bank_rule_name],
-		],
-		fields=[
-			"date",
 		],
 		pluck="date",
 		distinct=True,
 	)
-	# 2) Преобразуем в date-объекты и сортируем
+	# 2) Сортируем (pluck уже отдаёт date-объекты)
 	date_objs.sort()
 
 	if not date_objs:
 		return
 
-	# 3) Строим полный интервал от первой до последней даты (включительно)
-	first, last = date_objs[0], date_objs[-1]
-	full_dates = [first + timedelta(days=offset) for offset in range((last - first).days + 1)]
+	# 3) Определяем фактический интервал:
+	#    сначала — либо самая ранняя дата операций, либо today (если все операции «в будущем»)
+	first_date = date_objs[0] if date_objs[0] <= today else today
+	last_date = date_objs[-1]
 
-	# 4) Добавляем ещё один день после последней
-	full_dates.append(last + timedelta(days=1))
+	# 4) Строим полный список подряд идущих дат от first_date до last_date включительно
+	full_dates = [first_date + timedelta(days=offset) for offset in range((last_date - first_date).days + 1)]
+
+	# 5) И ещё один день после последнего (ваша старая логика)
+	full_dates.append(last_date + timedelta(days=1))
 
 	for selected_date in full_dates:
 		# вычислили и сохранили
@@ -981,7 +987,8 @@ def publish_budget_change_by_update_budget_operation(doc, method):
 		return
 	calculate_movements_of_budget_operations(organization_bank_rule_name, doc.date)
 	# Вызываем пересчет у того, кому сделали перевод
-	if frappe.get_doc("Expense Items", doc.expense_item).is_transit:
+
+	if doc.expense_item != "" and frappe.get_doc("Expense Items", doc.expense_item).is_transit:
 		calculate_movements_of_budget_operations(doc.recipient_of_transit_payment, doc.date)
 		publish_budget_change(doc.recipient_of_transit_payment)
 	publish_budget_change(organization_bank_rule_name)
