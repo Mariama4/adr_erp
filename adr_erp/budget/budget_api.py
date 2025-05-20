@@ -127,6 +127,56 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 		},
 	]
 
+	colHeaders.extend([_("Balance"), _("Remaining"), _("Transfer"), _("Movement")])
+	columns.extend(
+		[
+			{
+				"field": "balance",
+				"label": _("Balance"),
+				"type": "numeric",
+				"allowInvalid": False,
+				"className": "htCenter htMiddle",
+				"numericFormat": {
+					"pattern": "0,0.00",
+				},
+				"readOnly": True,
+			},
+			{
+				"field": "remaining",
+				"label": _("Remaining"),
+				"type": "numeric",
+				"allowInvalid": False,
+				"className": "htCenter htMiddle",
+				"numericFormat": {
+					"pattern": "0,0.00",
+				},
+				"readOnly": True,
+			},
+			{
+				"field": "transfer",
+				"label": _("Transfer"),
+				"type": "numeric",
+				"allowInvalid": False,
+				"className": "htCenter htMiddle",
+				"numericFormat": {
+					"pattern": "0,0.00",
+				},
+				"readOnly": True,
+			},
+			{
+				"field": "movement",
+				"label": _("Movement"),
+				"type": "numeric",
+				"allowInvalid": False,
+				"className": "htCenter htMiddle",
+				"numericFormat": {
+					"pattern": "0,0.00",
+				},
+				"readOnly": True,
+			},
+		]
+	)
+
 	# Добавляем колонки для каждого expense item:
 	# сумма, транзит (если применимо), описание и комментарий.
 	for expense in available_expense_items:
@@ -293,29 +343,53 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number
 		key = (op["date"], op["budget_operation_type"])
 		grouped.setdefault(key, []).append(op)
 
-	# Основная логика: для каждой пары (dt, type) создаём ровно
-	# max(group_index)+1 строк и заполняем их по индексу
+	# 4) Одинарный запрос за движениями из Movements of Budget Operations
+	moves = frappe.get_all(
+		"Movements of Budget Operations",
+		filters=[
+			["organization_bank_rule", "=", organization_bank_rule_name],
+			["date", ">=", start_date.strftime("%Y-%m-%d")],
+			["date", "<=", end_date.strftime("%Y-%m-%d")],
+		],
+		fields=["date", "budget_balance_type", "sum"],
+	)
+	# 5) Построить словарь: (date, balance_type) → sum
+	moves_map = {(m.date.strftime("%Y-%m-%d"), m.budget_balance_type): m.sum for m in moves}
+
+	# 6) Для каждого dt и каждого типа строим строки
 	for dt in dates:
 		for t in types:
 			key = (dt, t)
 			ops_list = grouped.get(key, [])
+			# читаем суммы из словаря (или 0 если нет)
+			bal = moves_map.get((dt, "Balance"), 0.0)
+			rem = moves_map.get((dt, "Remaining"), 0.0)
+			trf = moves_map.get((dt, "Transfer"), 0.0)
+			mov = moves_map.get((dt, "Movement"), 0.0)
 
 			if ops_list:
-				# узнаём, сколько строк нужно: от 0 до max(group_index)
 				max_idx = max(op.get("group_index", 0) for op in ops_list)
-				rows_for_key = []
-				# инициализируем пустые строки с нужным group_index
-				for gi in range(0, max_idx + 1):
-					rows_for_key.append(create_empty_row(dt, t, idx_map, num_cols, gi))
-				# заполняем каждую строку по её group_index
+				# создаём строк по каждому group_index
+				rows_for_key = [create_empty_row(dt, t, idx_map, num_cols, gi) for gi in range(max_idx + 1)]
+				# сначала проставляем четыре метрики во все строки
+				for row in rows_for_key:
+					row[idx_map["balance"]] = bal
+					row[idx_map["remaining"]] = rem
+					row[idx_map["transfer"]] = trf
+					row[idx_map["movement"]] = mov
+				# потом раскладываем expense_item по своим строкам
 				for op in ops_list:
 					gi = op.get("group_index", 0)
 					fill_row_from_op(rows_for_key[gi], op, idx_map)
-				# добавляем все заполненные ряды
 				result["data"].extend(rows_for_key)
 			else:
-				# ни одной операции — одна пустая строка с group_index=0
-				result["data"].append(create_empty_row(dt, t, idx_map, num_cols, 0))
+				# ни одной операции — одна пустая строка + метрики
+				empty = create_empty_row(dt, t, idx_map, num_cols, 0)
+				empty[idx_map["balance"]] = bal
+				empty[idx_map["remaining"]] = rem
+				empty[idx_map["transfer"]] = trf
+				empty[idx_map["movement"]] = mov
+				result["data"].append(empty)
 
 	return result
 
@@ -341,21 +415,21 @@ def save_budget_changes(organization_bank_rule_name, changes):
 	def count_ops(filters):
 		return frappe.db.count("Budget Operations", filters)
 
-	def get_group_indices(date):
+	def get_group_indices(target_date):
 		ops = frappe.get_all(
 			"Budget Operations",
-			filters={"date": date, "organization_bank_rule": organization_bank_rule_name},
+			filters={"date": target_date, "organization_bank_rule": organization_bank_rule_name},
 			fields=["group_index"],
 		)
 		return [op.group_index for op in ops if op.group_index is not None]
 
-	def next_group_index(date):
-		idxs = get_group_indices(date)
+	def next_group_index(target_date):
+		idxs = get_group_indices(target_date)
 		return max(idxs) + 1 if idxs else 0
 
-	def create_op(date, op_type, expense_item, group_index):
+	def create_op(target_date, op_type, expense_item, group_index):
 		doc = frappe.new_doc("Budget Operations")
-		doc.date = date
+		doc.date = target_date
 		doc.budget_operation_type = op_type
 		doc.organization_bank_rule = organization_bank_rule_name
 		doc.expense_item = expense_item
@@ -367,22 +441,22 @@ def save_budget_changes(organization_bank_rule_name, changes):
 		doc.save()
 		return doc
 
-	def handle_empty_change(date, op_type):
+	def handle_empty_change(target_date, op_type):
 		# если expense_item == ""
 		# 1) при отсут. любых записей – создаём пару план/факт с group_index=0
-		if count_ops({"date": date, "organization_bank_rule": organization_bank_rule_name}) == 0:
-			create_op(date, "План", "", 0)
-			create_op(date, "Факт", "", 0)
+		if count_ops({"date": target_date, "organization_bank_rule": organization_bank_rule_name}) == 0:
+			create_op(target_date, "План", "", 0)
+			create_op(target_date, "Факт", "", 0)
 
 		# 2) создаём пустые на новом group_index
-		gi = next_group_index(date)
+		gi = next_group_index(target_date)
 		if op_type == "План":
-			create_op(date, "План", "", gi)
-			create_op(date, "Факт", "", gi)
+			create_op(target_date, "План", "", gi)
+			create_op(target_date, "Факт", "", gi)
 		else:
-			create_op(date, "Факт", "", gi)
+			create_op(target_date, "Факт", "", gi)
 
-	def find_existing_doc(name, date=None, op_type=None, group_index=None):
+	def find_existing_doc(name, target_date=None, op_type=None, group_index=None):
 		try:
 			return frappe.get_doc("Budget Operations", name)
 		except frappe.DoesNotExistError:
@@ -390,11 +464,11 @@ def save_budget_changes(organization_bank_rule_name, changes):
 		except frappe.NotFound:
 			return None
 
-	def find_existing_empty_doc(date, organization_bank_rule_name, op_type, group_index):
+	def find_existing_empty_doc(target_date, organization_bank_rule_name, op_type, group_index):
 		names = frappe.get_all(
 			"Budget Operations",
 			filters={
-				"date": date,
+				"date": target_date,
 				"budget_operation_type": op_type,
 				"organization_bank_rule": organization_bank_rule_name,
 				"group_index": group_index,
@@ -409,16 +483,16 @@ def save_budget_changes(organization_bank_rule_name, changes):
 		return None
 
 	def handle_non_empty_change(ch):
-		date = ch["date"]
+		target_date = ch["date"]
 		op_type = ch["budget_type"]
 		expense_item = ch["expense_item"]
 		name = ch.get("name")
 		group_index = ch.get("group_index")
 
 		doc = (
-			find_existing_doc(name, date, op_type, group_index)
+			find_existing_doc(name, target_date, op_type, group_index)
 			if name
-			else find_existing_empty_doc(date, organization_bank_rule_name, op_type, group_index)
+			else find_existing_empty_doc(target_date, organization_bank_rule_name, op_type, group_index)
 		)
 
 		if not doc:
@@ -428,7 +502,7 @@ def save_budget_changes(organization_bank_rule_name, changes):
 				idxs = frappe.get_all(
 					"Budget Operations",
 					filters={
-						"date": date,
+						"date": target_date,
 						"budget_operation_type": op_type,
 						"organization_bank_rule": organization_bank_rule_name,
 					},
@@ -438,7 +512,7 @@ def save_budget_changes(organization_bank_rule_name, changes):
 				group_index = max(idxs) + 1 if idxs else 0
 
 			doc = frappe.new_doc("Budget Operations")
-			doc.date = date
+			doc.date = target_date
 			doc.budget_operation_type = op_type
 			doc.organization_bank_rule = organization_bank_rule_name
 			doc.group_index = group_index
@@ -456,7 +530,7 @@ def save_budget_changes(organization_bank_rule_name, changes):
 			exists = frappe.get_all(
 				"Budget Operations",
 				filters={
-					"date": date,
+					"date": target_date,
 					"budget_operation_type": "Факт",
 					"organization_bank_rule": organization_bank_rule_name,
 					"group_index": doc.group_index,
@@ -464,16 +538,16 @@ def save_budget_changes(organization_bank_rule_name, changes):
 				limit=1,
 			)
 			if not exists:
-				create_op(date, "Факт", "", doc.group_index)
+				create_op(target_date, "Факт", "", doc.group_index)
 
 	# --- основная логика ---
 	for ch in parse_changes(changes):
-		date = ch.get("date")
+		target_date = ch.get("date")
 		op_type = ch.get("budget_type")
 		expense_item = ch.get("expense_item") or ""
 
 		if expense_item == "":
-			handle_empty_change(date, op_type)
+			handle_empty_change(target_date, op_type)
 		else:
 			handle_non_empty_change(ch)
 
@@ -760,29 +834,29 @@ def calculate_transfer_type_movement_of_budget_operations(organization_bank_rule
 def calculate_balance_type_movement_of_budget_operations(organization_bank_rule_name, target_date):
 	rows = frappe.get_all(
 		"Movements of Budget Operations",
-		filters={
-			"organization_bank_rule": organization_bank_rule_name,
-			"date": target_date,
-			"budget_balance_type": "Balance",
-		},
-		fields=["name", "sum"],
-		limit_page_length=1,
+		filters=[
+			["organization_bank_rule", "=", organization_bank_rule_name],
+			["date", "=", target_date],
+			["budget_balance_type", "!=", "Balance"],
+		],
+		fields=["name", "sum", "budget_balance_type"],
 	)
-	if rows:
-		row = rows[0]
-		return {
-			"current_budget_operations_remainings": flt(row.get("sum") or 0),
-			"used_budget_operations": [],
-		}
-	else:
-		return {
-			"current_budget_operations_remainings": 0.0,
-			"used_budget_operations": [],
-		}
+	current_budget_operations_remainings = 0
+	used_budget_operations = []
+
+	for row in rows:
+		used_budget_operations.append(row.name)
+		if row.budget_balance_type in ["Transfer", "Remaining", "Movement"]:
+			current_budget_operations_remainings += row.sum
+
+	return {
+		"current_budget_operations_remainings": current_budget_operations_remainings,
+		"used_budget_operations": [],
+	}
 
 
 def save_movement_of_budget_operations(
-	date, organization_bank_rule, sum, budget_balance_type, budget_operations
+	target_date, organization_bank_rule, sum, budget_balance_type, budget_operations
 ):
 	"""
 	Если для заданной (date, organization_bank_rule, budget_balance_type)
@@ -790,7 +864,7 @@ def save_movement_of_budget_operations(
 	"""
 	# 1) Подготовим фильтры для поиска
 	filters = {
-		"date": date,
+		"date": target_date,
 		"organization_bank_rule": organization_bank_rule,
 		"budget_balance_type": budget_balance_type,
 	}
@@ -806,7 +880,7 @@ def save_movement_of_budget_operations(
 	else:
 		# 3b) Создаём новую
 		doc = frappe.new_doc("Movements of Budget Operations")
-		doc.date = date
+		doc.date = target_date
 		doc.organization_bank_rule = organization_bank_rule
 		doc.budget_balance_type = budget_balance_type
 
@@ -822,14 +896,14 @@ def save_movement_of_budget_operations(
 	doc.save()
 
 
-def calculate_movements_of_budget_operations(organization_bank_rule_name, date):
+def calculate_movements_of_budget_operations(organization_bank_rule_name, target_date):
 	# BUG: Двойной пересчет из-за создания двойных строк с одной датой
 
 	# Получаем все операции от текущей даты и более
 	date_objs = frappe.get_all(
 		"Budget Operations",
 		filters=[
-			["date", ">=", date],
+			["date", ">=", target_date],
 			["organization_bank_rule", "=", organization_bank_rule_name],
 		],
 		fields=[
@@ -851,13 +925,13 @@ def calculate_movements_of_budget_operations(organization_bank_rule_name, date):
 	# 4) Добавляем ещё один день после последней
 	full_dates.append(last + timedelta(days=1))
 
-	for date in full_dates:
+	for selected_date in full_dates:
 		# вычислили и сохранили
 		calculated_remaining_type = calculate_remaining_type_movement_of_budget_operations(
-			organization_bank_rule_name, date
+			organization_bank_rule_name, selected_date
 		)
 		save_movement_of_budget_operations(
-			date,
+			selected_date,
 			organization_bank_rule_name,
 			calculated_remaining_type["current_budget_operations_remainings"],
 			"Remaining",
@@ -865,11 +939,11 @@ def calculate_movements_of_budget_operations(organization_bank_rule_name, date):
 		)
 
 		calculated_movement_type = calculate_movement_type_movement_of_budget_operations(
-			organization_bank_rule_name, date
+			organization_bank_rule_name, selected_date
 		)
 
 		save_movement_of_budget_operations(
-			date,
+			selected_date,
 			organization_bank_rule_name,
 			calculated_movement_type["current_budget_operations_movements"],
 			"Movement",
@@ -877,11 +951,11 @@ def calculate_movements_of_budget_operations(organization_bank_rule_name, date):
 		)
 
 		calculated_transfer_type = calculate_transfer_type_movement_of_budget_operations(
-			organization_bank_rule_name, date
+			organization_bank_rule_name, selected_date
 		)
-
+		# print(calculated_transfer_type)
 		save_movement_of_budget_operations(
-			date,
+			selected_date,
 			organization_bank_rule_name,
 			calculated_transfer_type["current_budget_operations_transfers"],
 			"Transfer",
@@ -889,15 +963,15 @@ def calculate_movements_of_budget_operations(organization_bank_rule_name, date):
 		)
 
 		calculated_balance_type = calculate_balance_type_movement_of_budget_operations(
-			organization_bank_rule_name, date
+			organization_bank_rule_name, selected_date
 		)
 
 		save_movement_of_budget_operations(
-			date,
+			selected_date,
 			organization_bank_rule_name,
 			calculated_balance_type["current_budget_operations_remainings"],
 			"Balance",
-			"",  # баланс зависит от всего выше
+			"",  # TODO: баланс зависит от всего выше
 		)
 
 
@@ -906,6 +980,10 @@ def publish_budget_change_by_update_budget_operation(doc, method):
 	if not organization_bank_rule_name:
 		return
 	calculate_movements_of_budget_operations(organization_bank_rule_name, doc.date)
+	# Вызываем пересчет у того, кому сделали перевод
+	if frappe.get_doc("Expense Items", doc.expense_item).is_transit:
+		calculate_movements_of_budget_operations(doc.recipient_of_transit_payment, doc.date)
+		publish_budget_change(doc.recipient_of_transit_payment)
 	publish_budget_change(organization_bank_rule_name)
 
 

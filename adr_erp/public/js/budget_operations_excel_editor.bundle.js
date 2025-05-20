@@ -43,9 +43,10 @@ function getMergeCellsConfig(data, dateColIndex = 0) {
 			if (span > 1) {
 				merge.push({ row: start, col: dateColIndex, rowspan: span, colspan: 1 });
 
-				// merge.push({ row: start, col: dateColIndex + 3, rowspan: span, colspan: 1 });
-				// merge.push({ row: start, col: dateColIndex + 4, rowspan: span, colspan: 1 });
-				// merge.push({ row: start, col: dateColIndex + 5, rowspan: span, colspan: 1 });
+				merge.push({ row: start, col: dateColIndex + 3, rowspan: span, colspan: 1 });
+				merge.push({ row: start, col: dateColIndex + 4, rowspan: span, colspan: 1 });
+				merge.push({ row: start, col: dateColIndex + 5, rowspan: span, colspan: 1 });
+				merge.push({ row: start, col: dateColIndex + 6, rowspan: span, colspan: 1 });
 			}
 			start = i;
 		}
@@ -212,10 +213,7 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 		autoWrapRow: true,
 		autoWrapCol: true,
 		manualColumnResize: true,
-		colWidths: [
-			105, 60, 60,
-			// 105, 105, 105
-		].concat(
+		colWidths: [105, 60, 60, 105, 105, 105, 105].concat(
 			Array.from({ length: message.columns.length - 2 }, (_, i) => [100, 150, 150][i % 3])
 		),
 		colHeaders: message.colHeaders,

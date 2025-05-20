@@ -42,3 +42,7 @@ base,база,
 {0} Comment,{0} Комментарий,
 {0} Description,{0} Описание,
 {0} Transit,{0} Транзит,
+Balance,Баланс
+Remaining,Остаток
+Transfer,Перевод
+Movement,Движение
