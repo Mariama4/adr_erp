@@ -900,7 +900,9 @@ def calculate_movements_of_budget_operations(organization_bank_rule_name, target
 	# BUG: Двойной пересчет из-за создания двойных строк с одной датой
 
 	today = datetime.now(pytz.timezone("Europe/Moscow")).date()
-
+	target_date = (
+		datetime.strptime(target_date, "%Y-%m-%d").date() if isinstance(target_date, str) else target_date
+	)
 	# Если target_date в будущем — используем в качестве точки входа сегодня, иначе — сам target_date
 	start_boundary = today if target_date > today else target_date
 
