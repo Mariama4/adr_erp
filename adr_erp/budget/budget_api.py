@@ -49,14 +49,6 @@ def fetch_budget_operations(organization_bank_rule_name, start_date, end_date):
 	return ops
 
 
-def get_operation_types():
-	"""
-	Получает список названий типов бюджетных операций в отсортированном порядке.
-	"""
-	op_types = frappe.get_list("Budget operation types", fields=["type_name"], order_by="priority asc")
-	return [op["type_name"] for op in op_types]
-
-
 def get_bank_rules():
 	"""
 	Возвращает список имён правил для банка (Organization-Bank Rules).
@@ -314,6 +306,18 @@ def fill_row_from_op(row, op, field_to_index):
 	return row
 
 
+def get_budget_operations_types():
+	meta = frappe.get_meta("Budget Operations")
+
+	# Извлекаем DocField по имени поля
+	df = meta.get_field("budget_operation_type")
+
+	# options хранится в многострочной строке, где каждая опция на новой строке
+	raw = df.options or ""
+	options = raw.split("\n")
+	return options
+
+
 @frappe.whitelist()
 def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number_of_days):
 	result = {"data": [], "colHeaders": [], "columns": [], "operationTypeNames": []}
@@ -325,8 +329,7 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number
 
 	# Получаем исходные данные и метаданные
 	budget_ops = fetch_budget_operations(organization_bank_rule_name, start_date, end_date)
-	types = frappe.get_list("Budget Operation Types", fields=["type_name"], order_by="priority asc")
-	types = [t["type_name"] for t in types]
+	types = get_budget_operations_types()
 	rules = frappe.get_list("Organization-Bank Rules", fields=["name"], order_by="creation asc")
 	rules = [r["name"] for r in rules]
 	items = get_available_expense_items(organization_bank_rule_name)
