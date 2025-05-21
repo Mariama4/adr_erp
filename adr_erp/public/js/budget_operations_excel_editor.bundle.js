@@ -363,7 +363,10 @@ function attachResizeListener() {
  * @param {String} organization_bank_rule_name - Имя документа правил организации.
  */
 function setup_excel_editor_table(organization_bank_rule_name, number_of_days) {
-	frappe
+	if (organization_bank_rule_name == undefined || number_of_days == undefined) {
+		return Promise.reject();
+	}
+	return frappe
 		.call("adr_erp.budget.budget_api.get_budget_plannig_data_for_handsontable", {
 			organization_bank_rule_name: organization_bank_rule_name,
 			number_of_days: number_of_days,
@@ -438,3 +441,31 @@ frappe.realtime.on("require_budget-operations-excel-editor_refresh", (msg) => {
 
 window.setup_excel_editor_table = setup_excel_editor_table;
 attachResizeListener();
+
+// Функция загрузки с retry
+function loadDataWithRetry(retries = 3, delay = 100) {
+	window
+		.setup_excel_editor_table(
+			window.current_organization_bank_rules_select,
+			window.current_number_of_days_select
+		)
+		.catch((err) => {
+			if (retries > 0) {
+				console.warn(`Load failed, retrying in ${delay}ms...`, err);
+				setTimeout(() => loadDataWithRetry(retries - 1, delay * 2), delay);
+			} else {
+				frappe.msgprint({
+					title: __("Error loading data"),
+					message: __("Failed to load data after multiple servers."),
+					indicator: "red",
+				});
+			}
+		});
+}
+
+// Запуск после готовности DOM
+if (document.readyState === "complete" || document.readyState === "interactive") {
+	loadDataWithRetry();
+} else {
+	document.addEventListener("DOMContentLoaded", loadDataWithRetry);
+}

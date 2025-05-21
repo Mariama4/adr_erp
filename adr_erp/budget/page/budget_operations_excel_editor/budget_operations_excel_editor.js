@@ -98,15 +98,6 @@ const PageContent = Class.extend({
 						);
 					},
 				});
-
-				try {
-					window.setup_excel_editor_table(
-						window.current_organization_bank_rules_select,
-						window.current_number_of_days_select
-					);
-				} catch {
-					window.location.reload();
-				}
 			});
 
 		// Рендерим шаблон страницы (если есть необходимость оформления через шаблон)
