@@ -402,11 +402,34 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number
 				empty[idx_map["movement"]] = mov
 				result["data"].append(empty)
 
+	# После того, как result['data'] уже заполнен, добавляем метаданные о группах:
 	type_order = {"План": 0, "Факт": 1}
-	date_idx = idx_map.get("date")
-	type_idx = idx_map.get("budget_operation_type")
-	group_idx = idx_map.get("group_index")
-	result["data"].sort(key=lambda row: (row[date_idx], row[group_idx], type_order.get(row[type_idx], 2)))
+	date_idx = idx_map["date"]
+	type_idx = idx_map["budget_operation_type"]
+	group_idx = idx_map["group_index"]
+
+	# 1) Собираем информацию, у каких (дата, группа) есть хотя бы один План
+	group_meta = {}
+	for row in result["data"]:
+		key = (row[date_idx], row[group_idx])
+		has_plan = group_meta.get(key, False)
+		if row[type_idx] == "План":
+			has_plan = True
+		group_meta[key] = has_plan
+
+	# 2) Сортируем по четырём параметрам:
+	#   a) по дате,
+	#   b) сначала группы, где есть План (solo-факты пойдут после, т.к. False→1),
+	#   c) по порядковому номеру группы,
+	#   d) внутри группы План→Факт.
+	result["data"].sort(
+		key=lambda row: (
+			row[date_idx],
+			0 if group_meta[(row[date_idx], row[group_idx])] else 1,
+			row[group_idx],
+			type_order.get(row[type_idx], 2),
+		)
+	)
 
 	return result
 
