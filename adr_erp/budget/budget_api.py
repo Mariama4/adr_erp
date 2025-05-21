@@ -397,6 +397,12 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number
 				empty[idx_map["movement"]] = mov
 				result["data"].append(empty)
 
+	type_order = {"План": 0, "Факт": 1}
+	date_idx = idx_map.get("date")
+	type_idx = idx_map.get("budget_operation_type")
+	group_idx = idx_map.get("group_index")
+	result["data"].sort(key=lambda row: (row[date_idx], row[group_idx], type_order.get(row[type_idx], 2)))
+
 	return result
 
 
