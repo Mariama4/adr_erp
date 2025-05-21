@@ -246,7 +246,6 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 		// собираем payload и отправляем на сервер.
 		afterChange: (changes, source) => {
 			if (!changes || !["edit", "CopyPaste.paste"].includes(source)) return;
-			console.log("все данные для отправки", window.hotInstance.getSourceData());
 			// Получаем свежие данные с учётом восстановления дат
 			const freshRaw = window.hotInstance.getSourceData().map((r) => [...r]);
 			const freshData = restoreDatesInData(freshRaw);
@@ -295,8 +294,6 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 				const descIdx = findField(`${base}_description`);
 				const commIdx = findField(`${base}_comment`);
 
-				console.log(rowArr, idIdx);
-
 				return {
 					name: idIdx >= 0 ? rowArr[idIdx] : null,
 					date,
@@ -310,7 +307,6 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 				};
 			});
 			if (!payload.length) return;
-			console.log("data к отправке ", payload);
 			frappe.call({
 				method: "adr_erp.budget.budget_api.save_budget_changes",
 				args: { organization_bank_rule_name, changes: payload },
@@ -403,13 +399,10 @@ function safeUpdateInstance(message, hotSettings) {
 }
 
 function performUpdateData(newData) {
-	console.log("current data", window.hotInstance.getSourceData());
-	console.log("new data", newData);
 	const hot = window.hotInstance;
 	hot.batch(() => {
 		hot.populateFromArray(0, 0, newData, null, { updateOnDemand: true });
 	});
-	console.log("current new data", window.hotInstance.getSourceData());
 }
 
 // оборачиваем реальный обновлятор в debounce

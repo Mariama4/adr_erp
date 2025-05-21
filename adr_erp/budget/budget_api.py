@@ -968,7 +968,7 @@ def calculate_movements_of_budget_operations(organization_bank_rule_name, target
 		calculated_transfer_type = calculate_transfer_type_movement_of_budget_operations(
 			organization_bank_rule_name, selected_date
 		)
-		# print(calculated_transfer_type)
+
 		save_movement_of_budget_operations(
 			selected_date,
 			organization_bank_rule_name,
