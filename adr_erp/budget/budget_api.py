@@ -374,9 +374,14 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number
 			mov = moves_map.get((dt, "Movement"), 0.0)
 
 			if ops_list:
-				max_idx = max(op.get("group_index", 0) for op in ops_list)
+				# max_idx = max(op.get("group_index", 0) for op in ops_list)
 				# создаём строк по каждому group_index
-				rows_for_key = [create_empty_row(dt, t, idx_map, num_cols, gi) for gi in range(max_idx + 1)]
+				rows_for_key = [
+					create_empty_row(dt, t, idx_map, num_cols, gi)
+					for gi in
+					# range(max_idx + 1)
+					[op.get("group_index", 0) for op in ops_list]
+				]
 				# сначала проставляем четыре метрики во все строки
 				for row in rows_for_key:
 					row[idx_map["balance"]] = bal
@@ -384,9 +389,9 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number
 					row[idx_map["transfer"]] = trf
 					row[idx_map["movement"]] = mov
 				# потом раскладываем expense_item по своим строкам
-				for op in ops_list:
-					gi = op.get("group_index", 0)
-					fill_row_from_op(rows_for_key[gi], op, idx_map)
+				for i, op in enumerate(ops_list):
+					# gi = op.get("group_index", 0)
+					fill_row_from_op(rows_for_key[i], op, idx_map)
 				result["data"].extend(rows_for_key)
 			else:
 				# ни одной операции — одна пустая строка + метрики
@@ -521,6 +526,7 @@ def save_budget_changes(organization_bank_rule_name, changes):
 					},
 					fields=["group_index"],
 				)
+
 				idxs = [o.group_index for o in idxs if o.group_index is not None]
 				group_index = max(idxs) + 1 if idxs else 0
 

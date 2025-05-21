@@ -247,6 +247,7 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 		afterChange: (changes, source) => {
 			if (!changes || !["edit", "CopyPaste.paste"].includes(source)) return;
 			// Получаем свежие данные с учётом восстановления дат
+			console.dir(window.hotInstance.getSourceData());
 			const freshRaw = window.hotInstance.getSourceData().map((r) => [...r]);
 			const freshData = restoreDatesInData(freshRaw);
 
@@ -257,13 +258,8 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 
 			// Сначала строим маппинг rowIndex -> порядковый номер в группе (date|type)
 			const rowOrdinalMap = {};
-			const groupCounters = {}; // key -> next ordinal
 			freshData.forEach((row, idx) => {
-				const key = `${row[dateIdx]}|${row[1]}`; // date|budget_type
-				if (!(key in groupCounters)) {
-					groupCounters[key] = 0;
-				}
-				rowOrdinalMap[idx] = groupCounters[key]++;
+				rowOrdinalMap[idx] = row[2];
 			});
 
 			// Группируем изменения по строке и expense_item
@@ -306,6 +302,7 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 					group_index: rowOrdinalMap[rowIndex], // добавили порядковый номер
 				};
 			});
+
 			if (!payload.length) return;
 			frappe.call({
 				method: "adr_erp.budget.budget_api.save_budget_changes",
@@ -315,6 +312,7 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 
 		licenseKey: "non-commercial-and-evaluation",
 	};
+
 	if (window.hotInstance) {
 		safeUpdateInstance(
 			{
