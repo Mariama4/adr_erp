@@ -98,7 +98,7 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 			"dateFormat": "YYYY-MM-DD",
 			"correctFormat": True,
 			"allowInvalid": False,
-			"readOnly": True,
+			"editor": False,
 			"className": "htCenter htMiddle",
 		},
 		{
@@ -106,14 +106,14 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 			"label": _("Budget Operation Type"),
 			"type": "dropdown",
 			"source": operation_type_names,
-			"readOnly": True,
+			"editor": False,
 			"className": "htCenter htMiddle",
 		},
 		{
 			"field": "group_index",
 			"label": _("Group Index"),
 			"type": "numeric",
-			"readOnly": True,
+			"editor": False,
 			"className": "htCenter htMiddle",
 			"numericFormat": {
 				"pattern": "0,0.00",
@@ -133,7 +133,7 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 				"numericFormat": {
 					"pattern": "0,0.00",
 				},
-				"readOnly": True,
+				"editor": False,
 			},
 			{
 				"field": "remaining",
@@ -144,7 +144,7 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 				"numericFormat": {
 					"pattern": "0,0.00",
 				},
-				"readOnly": True,
+				"editor": False,
 			},
 			{
 				"field": "transfer",
@@ -155,7 +155,7 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 				"numericFormat": {
 					"pattern": "0,0.00",
 				},
-				"readOnly": True,
+				"editor": False,
 			},
 			{
 				"field": "movement",
@@ -166,7 +166,7 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 				"numericFormat": {
 					"pattern": "0,0.00",
 				},
-				"readOnly": True,
+				"editor": False,
 			},
 		]
 	)
@@ -188,7 +188,7 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 				"numericFormat": {
 					"pattern": "0,0.00",
 				},
-				"readOnly": expense["is_read_only"],
+				**({"editor": False} if expense.get("is_read_only") else {}),
 			}
 		)
 
@@ -238,7 +238,7 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 				"field": f"{name}_name",
 				"label": comm_label,
 				"type": "text",
-				"readOnly": True,
+				"editor": False,
 				"className": "htCenter htMiddle",
 			}
 		)
