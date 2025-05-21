@@ -319,7 +319,12 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 	};
 
 	if (window.hotInstance) {
-		safeUpdateInstance(message, hotSettings);
+		safeUpdateInstance(
+			{
+				data,
+			},
+			hotSettings
+		);
 	} else {
 		window.hotInstance = new Handsontable(container, hotSettings);
 		scrollToCurrentDate();

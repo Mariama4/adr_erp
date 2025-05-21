@@ -334,7 +334,7 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number
 	budget_ops = fetch_budget_operations(organization_bank_rule_name, start_date, end_date)
 	types = get_budget_operations_types()
 	rules = frappe.get_list("Organization-Bank Rules", fields=["name"], order_by="creation asc")
-	rules = [r["name"] for r in rules]
+	rules = [r["name"] for r in rules if r["name"] != organization_bank_rule_name]
 	items = get_available_expense_items(organization_bank_rule_name)
 
 	# Заголовки и колонки
