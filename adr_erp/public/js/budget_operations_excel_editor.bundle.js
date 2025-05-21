@@ -35,18 +35,28 @@ function restoreDatesInData(data) {
 function getMergeCellsConfig(data, dateColIndex = 0) {
 	if (!Array.isArray(data) || data.length === 0) return [];
 	const merge = [];
+	const rowCount = data.length;
+	const colCount = data[0].length; // число столбцов в строке
 	let start = 0;
-	for (let i = 1; i <= data.length; i++) {
-		const current = i < data.length ? data[i][dateColIndex] : null;
-		if (i === data.length || current !== data[start][dateColIndex]) {
+
+	for (let i = 1; i <= rowCount; i++) {
+		const current = i < rowCount ? data[i][dateColIndex] : null;
+		if (i === rowCount || current !== data[start][dateColIndex]) {
 			const span = i - start;
 			if (span > 1) {
-				merge.push({ row: start, col: dateColIndex, rowspan: span, colspan: 1 });
-
-				merge.push({ row: start, col: dateColIndex + 3, rowspan: span, colspan: 1 });
-				merge.push({ row: start, col: dateColIndex + 4, rowspan: span, colspan: 1 });
-				merge.push({ row: start, col: dateColIndex + 5, rowspan: span, colspan: 1 });
-				merge.push({ row: start, col: dateColIndex + 6, rowspan: span, colspan: 1 });
+				// массив нужных смещений относительно dateColIndex
+				[0, 3, 4, 5, 6].forEach((offset) => {
+					const col = dateColIndex + offset;
+					// проверяем, что столбец существует и слияние не выходит за последнюю строку
+					if (col < colCount && start + span <= rowCount) {
+						merge.push({
+							row: start,
+							col: col,
+							rowspan: span,
+							colspan: 1,
+						});
+					}
+				});
 			}
 			start = i;
 		}
@@ -204,6 +214,7 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 	const hiddenCols = getHiddenColumnsIndices(colHeaders, data);
 	const { width, height } = calculateDimensions();
 	const contextMenuSettings = getContextMenuSettings(opTypes, organization_bank_rule_name);
+	const todayStr = new Date().toISOString().slice(0, 10);
 
 	const hotSettings = {
 		data: message.data,
@@ -241,7 +252,24 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 				}
 			}
 		},
+		cells: function (row, col, prop) {
+			const cellMeta = {};
+			if (col === dateColIndex) {
+				cellMeta.renderer = function (hotInst, TD, r, c, prop, value, cellProps) {
+					// 1) стандартная отрисовка текста и базовых стилей
+					Handsontable.renderers.TextRenderer.apply(this, arguments);
 
+					// 2) каждый раз очищаем фон
+					TD.style.backgroundColor = "";
+
+					// 3) и только для сегодняшней даты — зелёный полупрозрачный фон
+					if (value === todayStr) {
+						TD.style.backgroundColor = "rgba(0, 255, 0, 0.2)";
+					}
+				};
+			}
+			return cellMeta;
+		},
 		// Обработчик изменений в таблице. Если изменения были внесены пользователем,
 		// собираем payload и отправляем на сервер.
 		afterChange: (changes, source) => {
@@ -390,10 +418,12 @@ function safeUpdateInstance(message, hotSettings) {
 	// 1) обновляем структуру (столбцы, заголовки, объединения, скрытые колонки и прочие настройки), но без data
 	const settingsNoData = { ...hotSettings };
 	delete settingsNoData.data;
-	hot.updateSettings(settingsNoData);
+	// console.log(settingsNoData);
 
 	// 2) «диффовое» обновление значений
 	performUpdateData(message.data);
+	console.log(settingsNoData);
+	// hot.updateSettings(settingsNoData);
 }
 
 function performUpdateData(newData) {
