@@ -307,7 +307,6 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 					group_index: rowOrdinalMap[rowIndex], // добавили порядковый номер
 				};
 			});
-
 			if (!payload.length) return;
 
 			frappe.call({
@@ -320,8 +319,7 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 	};
 
 	if (window.hotInstance) {
-		window.hotInstance.updateSettings(hotSettings);
-		window.hotInstance.loadData(message.data);
+		safeUpdateInstance(message, hotSettings);
 	} else {
 		window.hotInstance = new Handsontable(container, hotSettings);
 		scrollToCurrentDate();
@@ -373,6 +371,34 @@ function setup_excel_editor_table(organization_bank_rule_name, number_of_days) {
 		.then((r) => {
 			initHandsontableInstance(r.message, organization_bank_rule_name);
 		});
+}
+
+function safeUpdateInstance(message, hotSettings) {
+	const hot = window.hotInstance;
+	const editor = hot.getActiveEditor();
+	// Если редактор открыт — отложить до afterClose
+	if (editor && editor.isOpened()) {
+		editor.addHook("afterClose", () => {
+			safeUpdateInstance(message, hotSettings);
+		});
+		return;
+	}
+
+	// 1) обновляем структуру (столбцы, заголовки, объединения, скрытые колонки и прочие настройки), но без data
+	const settingsNoData = { ...hotSettings };
+	delete settingsNoData.data;
+	hot.updateSettings(settingsNoData);
+
+	// 2) «диффовое» обновление значений
+	performUpdateData(message.data);
+}
+
+function performUpdateData(newData) {
+	const hot = window.hotInstance;
+	hot.batch(() => {
+		hot.populateFromArray(0, 0, newData, null, { updateOnDemand: true });
+	});
+	hot.render();
 }
 
 // оборачиваем реальный обновлятор в debounce
