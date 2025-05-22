@@ -385,7 +385,18 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number
 					row[idx_map["movement"]] = mov
 				# потом раскладываем expense_item по своим строкам
 				for op in ops_list:
-					fill_row_from_op(rows_for_key[2], op, idx_map)
+					fill_row_from_op(
+						list(
+							filter(
+								lambda x: x[0] == op["date"]
+								and x[1] == op["budget_operation_type"]
+								and x[2] == op["group_index"],
+								rows_for_key,
+							)
+						)[0],
+						op,
+						idx_map,
+					)
 				result["data"].extend(rows_for_key)
 			else:
 				# ни одной операции — одна пустая строка + метрики
