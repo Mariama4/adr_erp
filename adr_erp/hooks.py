@@ -9,7 +9,7 @@ app_license = "mit"
 source_link = "https://github.com/Mariama4/adr_erp"
 app_logo_url = "/assets/adr_erp/images/logo.svg"
 # workspace
-# app_home = "/app/home"
+app_home = "/app/adr_erp"
 
 # Apps
 # ------------------
@@ -17,15 +17,15 @@ app_logo_url = "/assets/adr_erp/images/logo.svg"
 # required_apps = []
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": app_name,
-# 		"logo": app_logo_url,
-# 		"title": app_title,
-# 		"route": app_home,
-# 		# "has_permission": "adr_erp.check_app_permission",
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": app_name,
+		"logo": app_logo_url,
+		"title": app_title,
+		"route": app_home,
+		# "has_permission": "adr_erp.check_app_permission",
+	}
+]
 
 # Includes in <head>
 # ------------------

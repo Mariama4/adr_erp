@@ -59,7 +59,7 @@
  "links": [],
  "modified": "2025-05-16 16:53:13.294466",
  "modified_by": "Administrator",
- "module": "base",
+ "module": "Base",
  "name": "Expense Items",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
