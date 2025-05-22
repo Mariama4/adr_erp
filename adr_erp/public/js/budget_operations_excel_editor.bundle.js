@@ -200,7 +200,7 @@ function debounce(func, delay) {
  * Инициализирует или обновляет Handsontable с полученными данными и настройками.
  * Ожидается, что message имеет ключи: data, columns, colHeaders, operationTypeNames.
  */
-function initHandsontableInstance(message, organization_bank_rule_name) {
+function initHandsontableInstance(message, organization_bank_rule_name, force_render = false) {
 	const raw = (message.data || []).map((r) => [...r]);
 	const data = restoreDatesInData(raw);
 	const colHeaders = message.colHeaders || [];
@@ -215,6 +215,21 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 	const { width, height } = calculateDimensions();
 	const contextMenuSettings = getContextMenuSettings(opTypes, organization_bank_rule_name);
 	const todayStr = new Date().toISOString().slice(0, 10);
+
+	// Проверяем изменение размерности: если ряды или колонки изменились, принудительно рендерим заново
+	let needFullRender = force_render;
+	if (window.hotInstance && !force_render) {
+		const currentData = window.hotInstance.getSourceData();
+		const currentRowCount = currentData.length;
+		const currentColCount = Array.isArray(currentData[0])
+			? currentData[0].length
+			: window.hotInstance.countCols();
+		const newRowCount = message.data.length;
+		const newColCount = cols.length;
+		if (currentRowCount !== newRowCount || currentColCount !== newColCount) {
+			needFullRender = true;
+		}
+	}
 
 	const hotSettings = {
 		data: message.data,
@@ -275,7 +290,6 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 		afterChange: (changes, source) => {
 			if (!changes || !["edit", "CopyPaste.paste"].includes(source)) return;
 			// Получаем свежие данные с учётом восстановления дат
-			console.dir(window.hotInstance.getSourceData());
 			const freshRaw = window.hotInstance.getSourceData().map((r) => [...r]);
 			const freshData = restoreDatesInData(freshRaw);
 
@@ -341,7 +355,10 @@ function initHandsontableInstance(message, organization_bank_rule_name) {
 		licenseKey: "non-commercial-and-evaluation",
 	};
 
-	if (window.hotInstance) {
+	if (window.hotInstance && needFullRender) {
+		window.hotInstance.updateSettings(hotSettings);
+		window.hotInstance.loadData(message.data);
+	} else if (window.hotInstance) {
 		safeUpdateInstance(
 			{
 				data,
@@ -390,7 +407,11 @@ function attachResizeListener() {
  *
  * @param {String} organization_bank_rule_name - Имя документа правил организации.
  */
-function setup_excel_editor_table(organization_bank_rule_name, number_of_days) {
+function setup_excel_editor_table(
+	organization_bank_rule_name,
+	number_of_days,
+	force_render = false
+) {
 	if (organization_bank_rule_name == undefined || number_of_days == undefined) {
 		return Promise.reject();
 	}
@@ -400,7 +421,7 @@ function setup_excel_editor_table(organization_bank_rule_name, number_of_days) {
 			number_of_days: number_of_days,
 		})
 		.then((r) => {
-			initHandsontableInstance(r.message, organization_bank_rule_name);
+			initHandsontableInstance(r.message, organization_bank_rule_name, force_render);
 		});
 }
 
@@ -418,12 +439,10 @@ function safeUpdateInstance(message, hotSettings) {
 	// 1) обновляем структуру (столбцы, заголовки, объединения, скрытые колонки и прочие настройки), но без data
 	const settingsNoData = { ...hotSettings };
 	delete settingsNoData.data;
-	// console.log(settingsNoData);
+	hot.updateSettings(settingsNoData);
 
 	// 2) «диффовое» обновление значений
 	performUpdateData(message.data);
-	console.log(settingsNoData);
-	// hot.updateSettings(settingsNoData);
 }
 
 function performUpdateData(newData) {

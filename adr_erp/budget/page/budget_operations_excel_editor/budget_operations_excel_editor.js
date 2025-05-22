@@ -77,7 +77,8 @@ const PageContent = Class.extend({
 						window.current_organization_bank_rules_select = this.get_value();
 						window.setup_excel_editor_table(
 							window.current_organization_bank_rules_select,
-							window.current_number_of_days_select
+							window.current_number_of_days_select,
+							true
 						);
 					},
 				});
@@ -94,7 +95,8 @@ const PageContent = Class.extend({
 						window.current_number_of_days_select = this.get_value();
 						window.setup_excel_editor_table(
 							window.current_organization_bank_rules_select,
-							window.current_number_of_days_select
+							window.current_number_of_days_select,
+							true
 						);
 					},
 				});

@@ -374,17 +374,15 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number
 			mov = moves_map.get((dt, "Movement"), 0.0)
 
 			if ops_list:
-				row_count = len(list(set([op.get("group_index", 0) for op in ops_list])))
+				row_count = list(set([op.get("group_index", 0) for op in ops_list]))
 				# создаём строк по каждому group_index
-				rows_for_key = [create_empty_row(dt, t, idx_map, num_cols, gi) for gi in range(row_count + 1)]
+				rows_for_key = [create_empty_row(dt, t, idx_map, num_cols, gi) for gi in row_count]
 				# сначала проставляем четыре метрики во все строки
 				for row in rows_for_key:
 					row[idx_map["balance"]] = bal
 					row[idx_map["remaining"]] = rem
 					row[idx_map["transfer"]] = trf
 					row[idx_map["movement"]] = mov
-
-					#
 				# потом раскладываем expense_item по своим строкам
 				for op in ops_list:
 					fill_row_from_op(
