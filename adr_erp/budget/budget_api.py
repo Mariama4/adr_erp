@@ -383,6 +383,8 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number
 					row[idx_map["remaining"]] = rem
 					row[idx_map["transfer"]] = trf
 					row[idx_map["movement"]] = mov
+
+					#
 				# потом раскладываем expense_item по своим строкам
 				for op in ops_list:
 					fill_row_from_op(
