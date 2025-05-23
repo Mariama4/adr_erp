@@ -231,6 +231,26 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 		}
 	}
 
+	const groups = {};
+	data.forEach((row, idx) => {
+		const key = `${row[0]}|${row[2]}`;
+		if (!groups[key]) groups[key] = [];
+		groups[key].push(idx);
+	});
+
+	const groupRanges = {}; // rowIndex → { from: startRow, to: endRow }
+	Object.values(groups).forEach((indices) => {
+		const start = indices[0];
+		const end = indices[indices.length - 1];
+		indices.forEach((i) => {
+			groupRanges[i] = { from: start, to: end };
+		});
+	});
+
+	// узнаем границы по колонкам (тут – от первой до последней)
+	const firstCol = 0;
+	const lastCol = (colsMetaSettings.length || data[0].length) - 1;
+
 	const hotSettings = {
 		data: message.data,
 		columns: message.columns,
@@ -269,20 +289,45 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 		},
 		cells: function (row, col, prop) {
 			const cellMeta = {};
-			if (col === dateColIndex) {
-				cellMeta.renderer = function (hotInst, TD, r, c, prop, value, cellProps) {
-					// 1) стандартная отрисовка текста и базовых стилей
-					Handsontable.renderers.TextRenderer.apply(this, arguments);
+			// if (col === dateColIndex) {
+			cellMeta.renderer = function (hotInst, TD, r, c, prop, value, cellProps) {
+				// 1) стандартная отрисовка текста и базовых стилей
+				Handsontable.renderers.TextRenderer.apply(this, arguments);
 
-					// 2) каждый раз очищаем фон
-					TD.style.backgroundColor = "";
+				// 2) каждый раз очищаем фон
+				TD.style.backgroundColor = "";
 
-					// 3) и только для сегодняшней даты — зелёный полупрозрачный фон
-					if (value === todayStr) {
-						TD.style.backgroundColor = "rgba(0, 255, 0, 0.2)";
+				// 3) и только для сегодняшней даты — зелёный полупрозрачный фон
+
+				if (col === dateColIndex && value === todayStr) {
+					TD.style.backgroundColor = "rgba(0, 255, 0, 0.2)";
+				}
+
+				const range = groupRanges[r];
+				if (range) {
+					const b = "1px solid #000";
+					// сброс всех сторон
+					TD.style.border = "";
+
+					// граница слева у первой колонки группы
+					if (c === firstCol) {
+						TD.style.borderLeft = b;
 					}
-				};
-			}
+					// граница справа у последней колонки группы
+					if (c === lastCol) {
+						TD.style.borderRight = b;
+					}
+					// граница сверху у первой строки группы
+					if (r === range.from) {
+						TD.style.borderTop = b;
+					}
+					// граница снизу у последней строки группы
+					if (r === range.to) {
+						TD.style.borderBottom = b;
+					}
+				}
+			};
+			// }
 			return cellMeta;
 		},
 		// Обработчик изменений в таблице. Если изменения были внесены пользователем,
