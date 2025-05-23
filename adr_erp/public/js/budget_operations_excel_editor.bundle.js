@@ -95,7 +95,7 @@ function calculateDimensions() {
 	const width = window.innerWidth - bodySidebar.clientWidth;
 	let height = mainSection.clientHeight - stickyTop.clientHeight - bodyEl.clientHeight;
 	if (height == 0) {
-		height = window.innerHeight - mainSection.clientHeight.clientHeight - 15; // magic number
+		height = window.innerHeight - mainSection.clientHeight - 15; // magic number
 	}
 	return { width, height };
 }
