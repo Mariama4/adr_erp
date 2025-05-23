@@ -238,12 +238,14 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 		groups[key].push(idx);
 	});
 
-	const groupRanges = {}; // rowIndex → { from: startRow, to: endRow }
-	Object.values(groups).forEach((indices) => {
+	const groupRanges = {};
+	const groupIndexMap = {};
+	Object.values(groups).forEach((indices, groupIdx) => {
 		const start = indices[0];
 		const end = indices[indices.length - 1];
 		indices.forEach((i) => {
 			groupRanges[i] = { from: start, to: end };
+			groupIndexMap[i] = groupIdx;
 		});
 	});
 
@@ -297,34 +299,29 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 				// 2) каждый раз очищаем фон
 				TD.style.backgroundColor = "";
 
-				// 3) и только для сегодняшней даты — зелёный полупрозрачный фон
+				// 2) фон для каждой второй группы
+				const groupIdx = groupIndexMap[r];
+				if (groupIdx !== undefined && groupIdx % 2 === 1 && col > 6) {
+					TD.style.backgroundColor = "rgba(174, 174, 174, 0.2)";
+				} else {
+					TD.style.backgroundColor = "";
+				}
 
-				if (col === dateColIndex && value === todayStr) {
+				// 3) зелёная подсветка сегодняшней даты (перекрывает серый)
+				if (c === dateColIndex && value === todayStr) {
 					TD.style.backgroundColor = "rgba(0, 255, 0, 0.2)";
 				}
 
+				// 4) рамки по группам
 				const range = groupRanges[r];
 				if (range) {
 					const b = "1px solid #000";
 					// сброс всех сторон
 					TD.style.border = "";
-
-					// граница слева у первой колонки группы
-					if (c === firstCol) {
-						TD.style.borderLeft = b;
-					}
-					// граница справа у последней колонки группы
-					if (c === lastCol) {
-						TD.style.borderRight = b;
-					}
-					// граница сверху у первой строки группы
-					if (r === range.from) {
-						TD.style.borderTop = b;
-					}
-					// граница снизу у последней строки группы
-					if (r === range.to) {
-						TD.style.borderBottom = b;
-					}
+					if (c === firstCol) TD.style.borderLeft = b;
+					if (c === lastCol) TD.style.borderRight = b;
+					if (r === range.from) TD.style.borderTop = b;
+					if (r === range.to) TD.style.borderBottom = b;
 				}
 			};
 			// }
