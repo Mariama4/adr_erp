@@ -1,7 +1,25 @@
 // Инициализация страницы "budget-operations-excel-editor"
 frappe.pages["budget-operations-excel-editor"].on_page_load = function (wrapper) {
+	// 1) Запоминаем, было ли уже full-width
+	const initialFull = JSON.parse(localStorage.container_fullwidth || "false");
+	wrapper._initialFullwidth = initialFull;
+
+	// 2) Если изначально не было — включаем
+	if (!initialFull) {
+		frappe.ui.toolbar.toggle_full_width();
+		wrapper._toggledFullwidth = true;
+	}
+
 	loadHandsontableStyles();
 	new PageContent(wrapper);
+};
+
+// Когда пользователь уходит с этой страницы — возвращаем предыдущий режим
+frappe.pages["budget-operations-excel-editor"].on_page_hide = function (wrapper) {
+	// Если мы включали full-width сами — выключаем
+	if (wrapper._toggledFullwidth) {
+		frappe.ui.toolbar.toggle_full_width();
+	}
 };
 
 /**
