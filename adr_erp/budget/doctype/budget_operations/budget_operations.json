@@ -51,7 +51,8 @@
    "in_preview": 1,
    "in_standard_filter": 1,
    "label": "Organization-Bank Rule",
-   "options": "Organization-Bank Rules"
+   "options": "Organization-Bank Rules",
+   "reqd": 1
   },
   {
    "fieldname": "recipient_of_transit_payment",
@@ -92,7 +93,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-20 17:55:34.303294",
+ "modified": "2025-05-23 13:02:06.842994",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Budget Operations",
