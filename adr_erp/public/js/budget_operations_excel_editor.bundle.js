@@ -92,8 +92,24 @@ function getHiddenColumnsIndices(colHeaders, data) {
  * @returns {Object} - Объект с ключами width и height.
  */
 function calculateDimensions() {
-	const width = window.innerWidth - bodySidebar.clientWidth;
-	const height = mainSection.clientHeight - stickyTop.clientHeight - bodyEl.clientHeight;
+	// безопасно получаем нужные DOM-элементы
+	const sidebar = bodySidebar || document.querySelector(".body-sidebar-container");
+	const main = mainSection || document.querySelector(".main-section");
+	const sticky = stickyTop || document.querySelector(".sticky-top");
+	const body = bodyEl || document.querySelector("#body");
+
+	// берём значения или 0, если их нет
+	const sidebarWidth = sidebar?.clientWidth ?? 0;
+	const mainHeight = main?.clientHeight ?? 0;
+	const stickyHeight = sticky?.clientHeight ?? 0;
+	const bodyHeight = body?.clientHeight ?? 0;
+	const windowWidth = window.innerWidth ?? 0;
+	const windowHeight = window.innerHeight ?? 0;
+
+	// вычисляем ширину и высоту (не уходим в отрицательные)
+	const width = Math.max(0, windowWidth - sidebarWidth);
+	const height = Math.max(0, mainHeight - stickyHeight - bodyHeight);
+
 	return { width, height };
 }
 
