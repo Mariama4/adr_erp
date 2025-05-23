@@ -76,7 +76,7 @@ def get_available_expense_items(org_bank_rule_name):
 				"is_read_only": expense_doc.is_read_only,
 			}
 		)
-	available_items.sort(key=lambda x: x["entry_type"])
+	available_items.sort(key=lambda x: x["entry_type"], reverse=True)
 	return available_items
 
 
@@ -1085,14 +1085,23 @@ def publish_budget_change_by_update_expense_item(doc, method):
 	is_new = getattr(doc, "flags", None) and doc.flags.in_insert
 	if is_new:
 		append_new_expense_item_to_all_organization_bank_rules(doc)
-	# если новое, то всем добавляем
-	if doc.is_transit and doc.recipient_of_transit_payment != "":
-		calculate_movements_of_budget_operations(doc.recipient_of_transit_payment, doc.date)
-		publish_budget_change(doc.recipient_of_transit_payment)
 
-	links = frappe.get_all("Organization-Bank Rules", filters={"link_expense_item": doc.name}, pluck="name")
+	parents = frappe.get_all("Link Expenses Items", filters={"link_expense_item": doc.name}, pluck="parent")
+	links = frappe.get_all("Organization-Bank Rules", filters={"name": ["in", parents]}, fields=["name"])
 	for rule in links:
-		publish_budget_change(rule)
+		if doc.is_transit and rule.recipient_of_transit_payment != "":
+			all_budget_operations = frappe.get_all(
+				"Budget Operations",
+				filters={"organization_bank_rule": rule.name},
+				fields=["date", "recipient_of_transit_payment"],
+				distinct=True,
+			)
+			for budget_operation in all_budget_operations:
+				calculate_movements_of_budget_operations(
+					budget_operation.recipient_of_transit_payment, budget_operation.date
+				)
+				publish_budget_change(budget_operation.recipient_of_transit_payment)
+		publish_budget_change(rule.name)
 
 
 def publish_budget_change_by_update_organization_bank_rule(doc, method):
