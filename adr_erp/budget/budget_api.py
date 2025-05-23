@@ -612,14 +612,14 @@ def publish_budget_page_refresh():
 
 
 # 1
-def calculate_remaining_type_movement_of_budget_operations(organization_bank_rule_name, target_date):
+def calculate_balance_type_movement_of_budget_operations(organization_bank_rule_name, target_date):
 	previous_target_date = target_date - timedelta(1)
 	rows = frappe.get_all(
 		"Movements of Budget Operations",
 		filters={
 			"organization_bank_rule": organization_bank_rule_name,
 			"date": previous_target_date,
-			"budget_balance_type": "Balance",
+			"budget_balance_type": "Remaining",
 		},
 		fields=["name", "sum"],
 		limit_page_length=1,
@@ -627,10 +627,10 @@ def calculate_remaining_type_movement_of_budget_operations(organization_bank_rul
 	if rows:
 		row = rows[0]
 		return {
-			"current_budget_operations_remainings": flt(row.get("sum") or 0),
+			"current_budget_operations_balances": flt(row.get("sum") or 0),
 		}
 	else:
-		return {"current_budget_operations_remainings": 0.0}
+		return {"current_budget_operations_balances": 0.0}
 
 
 # 2
@@ -865,20 +865,20 @@ def calculate_transfer_type_movement_of_budget_operations(organization_bank_rule
 
 
 # 4
-def calculate_balance_type_movement_of_budget_operations(organization_bank_rule_name, target_date):
+def calculate_remaining_type_movement_of_budget_operations(organization_bank_rule_name, target_date):
 	rows = frappe.get_all(
 		"Movements of Budget Operations",
 		filters=[
 			["organization_bank_rule", "=", organization_bank_rule_name],
 			["date", "=", target_date],
-			["budget_balance_type", "!=", "Balance"],
+			["budget_balance_type", "!=", "Remaining"],
 		],
 		fields=["name", "sum", "budget_balance_type"],
 	)
 	current_budget_operations_remainings = 0
 
 	for row in rows:
-		if row.budget_balance_type in ["Transfer", "Remaining", "Movement"]:
+		if row.budget_balance_type in ["Transfer", "Balance", "Movement"]:
 			current_budget_operations_remainings += row.sum
 
 	return {
@@ -959,14 +959,15 @@ def calculate_movements_of_budget_operations(organization_bank_rule_name, target
 
 	for selected_date in full_dates:
 		# вычислили и сохранили
-		calculated_remaining_type = calculate_remaining_type_movement_of_budget_operations(
+		calculated_balance_type = calculate_balance_type_movement_of_budget_operations(
 			organization_bank_rule_name, selected_date
 		)
+
 		save_movement_of_budget_operations(
 			selected_date,
 			organization_bank_rule_name,
-			calculated_remaining_type["current_budget_operations_remainings"],
-			"Remaining",
+			calculated_balance_type["current_budget_operations_balances"],
+			"Balance",
 		)
 
 		calculated_movement_type = calculate_movement_type_movement_of_budget_operations(
@@ -991,15 +992,14 @@ def calculate_movements_of_budget_operations(organization_bank_rule_name, target
 			"Transfer",
 		)
 
-		calculated_balance_type = calculate_balance_type_movement_of_budget_operations(
+		calculated_remaining_type = calculate_remaining_type_movement_of_budget_operations(
 			organization_bank_rule_name, selected_date
 		)
-
 		save_movement_of_budget_operations(
 			selected_date,
 			organization_bank_rule_name,
-			calculated_balance_type["current_budget_operations_remainings"],
-			"Balance",
+			calculated_remaining_type["current_budget_operations_remainings"],
+			"Remaining",
 		)
 
 
