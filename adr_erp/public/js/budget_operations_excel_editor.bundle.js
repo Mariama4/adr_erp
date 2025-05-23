@@ -1,8 +1,9 @@
 import Handsontable from "handsontable";
 
 const container = document.querySelector(".budget_operations_excel_editor_table");
-const mainSection = document.querySelector("body > div.main-section");
+const page_form = document.querySelector(".page-form");
 const bodySidebar = document.querySelector("body > div.body-sidebar-container");
+const mainSection = document.querySelector("body > div.main-section");
 const stickyTop = document.querySelector("body > div.main-section > div.sticky-top");
 const bodyEl = document.querySelector("#body");
 
@@ -92,13 +93,30 @@ function getHiddenColumnsIndices(colHeaders, data) {
  * @returns {Object} - Объект с ключами width и height.
  */
 function calculateDimensions() {
-	// const width = window.innerWidth - bodySidebar.clientWidth;
-	// let height = mainSection.clientHeight - stickyTop.clientHeight - bodyEl.clientHeight;
-	// if (height == 0) {
-	// 	height = window.innerHeight - mainSection.clientHeight - 15; // magic number
-	// }
-	const width = window.innerWidth;
-	const height = window.innerHeight;
+	// 1) Безопасно достаём размеры элементов (если элемента нет — 0)
+	const sidebarWidth = bodySidebar?.clientWidth ?? 0;
+	const mainHeight = mainSection?.clientHeight ?? 0;
+	const stickyHeight = stickyTop?.clientHeight ?? 0;
+	const bodyHeightVal = bodyEl?.clientHeight ?? 0;
+	const formWidth = page_form?.clientWidth ?? 0;
+
+	// 2) Первый вариант: полная ширина минус сайдбар, а высота — внутри main
+	let width = window.innerWidth - sidebarWidth;
+	let height = mainHeight - stickyHeight - bodyHeightVal;
+
+	// 3) Если вышло ≤0, пробуем подстроиться под форму
+	if (width <= 0 || height <= 0) {
+		width = formWidth || window.innerWidth;
+		// высота = экран минус header-панель (mainSection) и небольшой отступ
+		height = window.innerHeight - mainHeight - 15 || window.innerHeight;
+	}
+
+	// 4) Финальный фоллбэк: займём весь экран
+	if (width <= 0 || height <= 0) {
+		width = window.innerWidth;
+		height = window.innerHeight;
+	}
+
 	return { width, height };
 }
 
