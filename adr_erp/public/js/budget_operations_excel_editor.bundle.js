@@ -92,11 +92,13 @@ function getHiddenColumnsIndices(colHeaders, data) {
  * @returns {Object} - Объект с ключами width и height.
  */
 function calculateDimensions() {
-	const width = window.innerWidth - bodySidebar.clientWidth;
-	let height = mainSection.clientHeight - stickyTop.clientHeight - bodyEl.clientHeight;
-	if (height == 0) {
-		height = window.innerHeight - mainSection.clientHeight - 15; // magic number
-	}
+	// const width = window.innerWidth - bodySidebar.clientWidth;
+	// let height = mainSection.clientHeight - stickyTop.clientHeight - bodyEl.clientHeight;
+	// if (height == 0) {
+	// 	height = window.innerHeight - mainSection.clientHeight - 15; // magic number
+	// }
+	const width = window.innerWidth;
+	const height = window.innerHeight;
 	return { width, height };
 }
 
