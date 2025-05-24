@@ -318,7 +318,17 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 				} else {
 					TH.style.backgroundColor = '#d3d3d3';
 				}
-				console.log('afterGetColHeader - ', TH.style.backgroundColor, col, TH);
+				console.log(
+					'afterGetColHeader - ',
+					TH.style.backgroundColor,
+					col,
+					TH,
+					headerText,
+					headerText.includes(__('Comment')),
+					headerText.includes(__('Description')),
+					headerText.includes('Comment'),
+					headerText.includes('Description'),
+				);
 			}
 			console.log('afterGetColHeader end');
 		},
