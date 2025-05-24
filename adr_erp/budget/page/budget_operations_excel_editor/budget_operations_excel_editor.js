@@ -1,6 +1,5 @@
 // Инициализация страницы "budget-operations-excel-editor"
 frappe.pages['budget-operations-excel-editor'].on_page_load = function (wrapper) {
-	// loadHandsontableStyles();
 	// 1) Запоминаем, было ли уже full-width
 	const initialFull = JSON.parse(localStorage.container_fullwidth || 'false');
 	wrapper._initialFullwidth = initialFull;
@@ -11,6 +10,7 @@ frappe.pages['budget-operations-excel-editor'].on_page_load = function (wrapper)
 		wrapper._toggledFullwidth = true;
 	}
 
+	loadHandsontableStyles();
 	new PageContent(wrapper);
 };
 
@@ -26,17 +26,13 @@ frappe.pages['budget-operations-excel-editor'].on_page_hide = function (wrapper)
  * Загружает CSS-стили Handsontable, если они ещё не подключены.
  */
 function loadHandsontableStyles() {
-	const urls = [
-		'https://cdn.jsdelivr.net/npm/handsontable@12.1.0/dist/handsontable.full.min.css',
-		'https://cdn.jsdelivr.net/npm/handsontable@12.1.0/dist/ht-theme-main.min.css',
+	const styles = [
+		'https://cdn.jsdelivr.net/npm/handsontable/styles/handsontable.min.css',
+		'https://cdn.jsdelivr.net/npm/handsontable/styles/ht-theme-main.min.css',
 	];
-	const head = document.head || document.getElementsByTagName('head')[0];
-	urls.forEach((url) => {
-		if (!document.querySelector(`link[href="${url}"]`)) {
-			const link = document.createElement('link');
-			link.rel = 'stylesheet';
-			link.href = url;
-			head.appendChild(link);
+	styles.forEach((url) => {
+		if (!$(`link[href="${url}"]`).length) {
+			$('head').append(`<link rel="stylesheet" href="${url}" />`);
 		}
 	});
 }
@@ -52,15 +48,8 @@ const PageContent = Class.extend({
 			single_column: true,
 		});
 		// Подключаем бандл скриптов Excel-редактора, если нужны дополнительные зависимости
-		frappe
-			.require([
-				'budget_operations_excel_editor.bundle.js',
-				'https://cdn.jsdelivr.net/npm/handsontable@12.1.0/dist/handsontable.full.min.css',
-				'https://cdn.jsdelivr.net/npm/handsontable@12.1.0/dist/handsontable.full.min.js',
-			])
-			.then(() => {
-				this.make();
-			});
+		frappe.require(['budget_operations_excel_editor.bundle.js']).then(() => {});
+		this.make();
 	},
 
 	make: function () {

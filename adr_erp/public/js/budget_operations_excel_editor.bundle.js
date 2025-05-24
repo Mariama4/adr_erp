@@ -1,11 +1,14 @@
-import Handsontable from "handsontable";
+import Handsontable from 'handsontable';
 
-const container = document.querySelector(".budget_operations_excel_editor_table");
-const page_form = document.querySelector(".page-form");
-const bodySidebar = document.querySelector("body > div.body-sidebar-container");
-const mainSection = document.querySelector("body > div.main-section");
-const stickyTop = document.querySelector("body > div.main-section > div.sticky-top");
-const bodyEl = document.querySelector("#body");
+import 'handsontable/styles/handsontable.min.css';
+import 'handsontable/styles/ht-theme-main.min.css';
+
+const container = document.querySelector('.budget_operations_excel_editor_table');
+const page_form = document.querySelector('.page-form');
+const bodySidebar = document.querySelector('body > div.body-sidebar-container');
+const mainSection = document.querySelector('body > div.main-section');
+const stickyTop = document.querySelector('body > div.main-section > div.sticky-top');
+const bodyEl = document.querySelector('#body');
 
 window.hotInstance = null;
 
@@ -73,15 +76,15 @@ function getMergeCellsConfig(data, dateColIndex = 0) {
 function getHiddenColumnsIndices(colHeaders, data) {
 	return colHeaders.reduce((acc, header, index) => {
 		if (
-			header.includes(__("Comment")) &&
-			!data.some((row) => row[index] != null && row[index] !== "")
+			header.includes(__('Comment')) &&
+			!data.some((row) => row[index] != null && row[index] !== '')
 		) {
 			acc.push(index);
 		}
-		if (header.includes("Name") && header.endsWith("Name")) {
+		if (header.includes('Name') && header.endsWith('Name')) {
 			acc.push(index);
 		}
-		if (header == __("Group Index")) {
+		if (header == __('Group Index')) {
 			acc.push(index);
 		}
 		return acc;
@@ -158,7 +161,7 @@ function getContextMenuSettings(operationTypeNames = [], organization_bank_rule_
 				];
 
 				frappe.call({
-					method: "adr_erp.budget.budget_api.save_budget_changes",
+					method: 'adr_erp.budget.budget_api.save_budget_changes',
 					args: { organization_bank_rule_name, changes: payload },
 				});
 			},
@@ -168,7 +171,7 @@ function getContextMenuSettings(operationTypeNames = [], organization_bank_rule_
 	return {
 		items: {
 			add_col_comment: {
-				name: __("Add comment"),
+				name: __('Add comment'),
 				callback: function (key, selection) {
 					let hiddenCols = this.getSettings().hiddenColumns.columns || [];
 					let newHiddenCols = Array.isArray(hiddenCols) ? [...hiddenCols] : [];
@@ -176,7 +179,7 @@ function getContextMenuSettings(operationTypeNames = [], organization_bank_rule_
 						let targetCol = sel.end.col;
 						let checkRange = 3;
 						const nextColHeader = this.getColHeader(targetCol + 1);
-						if (nextColHeader && nextColHeader.includes(__("Transit"))) {
+						if (nextColHeader && nextColHeader.includes(__('Transit'))) {
 							checkRange = 4;
 						}
 						while (
@@ -185,7 +188,7 @@ function getContextMenuSettings(operationTypeNames = [], organization_bank_rule_
 						) {
 							if (newHiddenCols.includes(targetCol)) {
 								newHiddenCols = newHiddenCols.filter(
-									(colIndex) => colIndex !== targetCol
+									(colIndex) => colIndex !== targetCol,
 								);
 								break;
 							}
@@ -231,7 +234,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 	const opTypes = Array.isArray(message.operationTypeNames) ? message.operationTypeNames : [];
 
 	const colsMetaSettings = cols;
-	const dateColIndex = cols.findIndex((c) => c.field === "date");
+	const dateColIndex = cols.findIndex((c) => c.field === 'date');
 
 	const mergeCells = getMergeCellsConfig(data, dateColIndex);
 	const hiddenCols = getHiddenColumnsIndices(colHeaders, data);
@@ -285,7 +288,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 		autoWrapCol: true,
 		manualColumnResize: true,
 		colWidths: [105, 60, 60, 105, 105, 105, 105].concat(
-			Array.from({ length: message.columns.length - 2 }, (_, i) => [100, 150, 150][i % 3])
+			Array.from({ length: message.columns.length - 2 }, (_, i) => [100, 150, 150][i % 3]),
 		),
 		colHeaders: message.colHeaders,
 		mergeCells: mergeCells,
@@ -302,13 +305,13 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 		allowInvalid: false,
 		afterGetColHeader: function (col, TH) {
 			if (col >= 0) {
-				TH.style.fontWeight = "bold";
-				TH.style.textAlign = "center";
-				const headerText = TH.innerText || "";
-				if (headerText.includes(__("Comment")) || headerText.includes(__("Description"))) {
-					TH.style.backgroundColor = "#FFCCCC";
+				TH.style.fontWeight = 'bold';
+				TH.style.textAlign = 'center';
+				const headerText = TH.innerText || '';
+				if (headerText.includes(__('Comment')) || headerText.includes(__('Description'))) {
+					TH.style.backgroundColor = '#FFCCCC';
 				} else {
-					TH.style.backgroundColor = "#d3d3d3";
+					TH.style.backgroundColor = '#d3d3d3';
 				}
 			}
 		},
@@ -320,27 +323,27 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 				Handsontable.renderers.TextRenderer.apply(this, arguments);
 
 				// 2) каждый раз очищаем фон
-				TD.style.backgroundColor = "";
+				TD.style.backgroundColor = '';
 
 				// 2) фон для каждой второй группы
 				const groupIdx = groupIndexMap[r];
 				if (groupIdx !== undefined && groupIdx % 2 === 1 && col > 6) {
-					TD.style.backgroundColor = "rgba(174, 174, 174, 0.2)";
+					TD.style.backgroundColor = 'rgba(174, 174, 174, 0.2)';
 				} else {
-					TD.style.backgroundColor = "";
+					TD.style.backgroundColor = '';
 				}
 
 				// 3) зелёная подсветка сегодняшней даты (перекрывает серый)
 				if (c === dateColIndex && value === todayStr) {
-					TD.style.backgroundColor = "rgba(0, 255, 0, 0.2)";
+					TD.style.backgroundColor = 'rgba(0, 255, 0, 0.2)';
 				}
 
 				// 4) рамки по группам
 				const range = groupRanges[r];
 				if (range) {
-					const b = "1px solid #000";
+					const b = '1px solid #000';
 					// сброс всех сторон
-					TD.style.border = "";
+					TD.style.border = '';
 					if (c === firstCol) TD.style.borderLeft = b;
 					if (c === lastCol) TD.style.borderRight = b;
 					if (r === range.from) TD.style.borderTop = b;
@@ -353,13 +356,13 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 		// Обработчик изменений в таблице. Если изменения были внесены пользователем,
 		// собираем payload и отправляем на сервер.
 		afterChange: (changes, source) => {
-			if (!changes || !["edit", "CopyPaste.paste"].includes(source)) return;
+			if (!changes || !['edit', 'CopyPaste.paste'].includes(source)) return;
 			// Получаем свежие данные с учётом восстановления дат
 			const freshRaw = window.hotInstance.getSourceData().map((r) => [...r]);
 			const freshData = restoreDatesInData(freshRaw);
 
 			// Индекс даты
-			const dateIdx = colsMetaSettings.findIndex((c) => c.field === "date");
+			const dateIdx = colsMetaSettings.findIndex((c) => c.field === 'date');
 			const rowCount = freshData.length;
 			const colCount = colsMetaSettings.length;
 
@@ -377,7 +380,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 					return;
 				}
 				const field = colsMetaSettings[col].field;
-				const base = field.split("_")[0];
+				const base = field.split('_')[0];
 				const key = `${row}|${base}`;
 				groups[key] = row;
 			});
@@ -388,7 +391,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 				const rowArr = freshData[rowIndex];
 				const date = rowArr[dateIdx];
 				const budget_type = rowArr[1];
-				const base = key.split("|")[1];
+				const base = key.split('|')[1];
 
 				const findField = (name) => colsMetaSettings.findIndex((c) => c.field === name);
 				const idIdx = findField(`${base}_name`);
@@ -412,12 +415,12 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 
 			if (!payload.length) return;
 			frappe.call({
-				method: "adr_erp.budget.budget_api.save_budget_changes",
+				method: 'adr_erp.budget.budget_api.save_budget_changes',
 				args: { organization_bank_rule_name, changes: payload },
 			});
 		},
 
-		licenseKey: "non-commercial-and-evaluation",
+		licenseKey: 'non-commercial-and-evaluation',
 	};
 
 	if (window.hotInstance && needFullRender) {
@@ -428,7 +431,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 			{
 				data,
 			},
-			hotSettings
+			hotSettings,
 		);
 	} else {
 		window.hotInstance = new Handsontable(container, hotSettings);
@@ -442,8 +445,8 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 function scrollToCurrentDate() {
 	const now = new Date();
 	const year = now.getFullYear();
-	const month = (now.getMonth() + 1).toString().padStart(2, "0");
-	const day = now.getDate().toString().padStart(2, "0");
+	const month = (now.getMonth() + 1).toString().padStart(2, '0');
+	const day = now.getDate().toString().padStart(2, '0');
 	const currentDate = `${year}-${month}-${day}`;
 	const rowIndex = window.hotInstance.getSourceData().findIndex((row) => row[0] === currentDate);
 	if (rowIndex >= 0) {
@@ -455,7 +458,7 @@ function scrollToCurrentDate() {
  * Привязывает обработчик изменения размеров окна для обновления настроек Handsontable.
  */
 function attachResizeListener() {
-	window.addEventListener("resize", () => {
+	window.addEventListener('resize', () => {
 		if (window.hotInstance) {
 			const { width, height } = calculateDimensions();
 			window.hotInstance.updateSettings({
@@ -475,13 +478,13 @@ function attachResizeListener() {
 function setup_excel_editor_table(
 	organization_bank_rule_name,
 	number_of_days,
-	force_render = false
+	force_render = false,
 ) {
 	if (organization_bank_rule_name == undefined || number_of_days == undefined) {
 		return Promise.reject();
 	}
 	return frappe
-		.call("adr_erp.budget.budget_api.get_budget_plannig_data_for_handsontable", {
+		.call('adr_erp.budget.budget_api.get_budget_plannig_data_for_handsontable', {
 			organization_bank_rule_name: organization_bank_rule_name,
 			number_of_days: number_of_days,
 		})
@@ -495,7 +498,7 @@ function safeUpdateInstance(message, hotSettings) {
 	const editor = hot.getActiveEditor();
 	// Если редактор открыт — отложить до afterClose
 	if (editor && editor.isOpened()) {
-		editor.addHook("afterClose", () => {
+		editor.addHook('afterClose', () => {
 			safeUpdateInstance(message, hotSettings);
 		});
 		return;
@@ -520,17 +523,17 @@ function performUpdateData(newData) {
 // оборачиваем реальный обновлятор в debounce
 const debouncedUpdate = debounce((rule, number_of_days) => {
 	frappe.show_alert({
-		message: __("Data updated"),
-		indicator: "blue",
+		message: __('Data updated'),
+		indicator: 'blue',
 	});
 	window.setup_excel_editor_table(rule, number_of_days);
 }, 1000);
 
 function forceReload() {
 	frappe.msgprint({
-		title: __("Force Data Update"),
-		message: __("The page will reload in 5 seconds"),
-		indicator: "red", // красный заголовок
+		title: __('Force Data Update'),
+		message: __('The page will reload in 5 seconds'),
+		indicator: 'red', // красный заголовок
 	});
 	setTimeout(() => {
 		window.location.reload(true);
@@ -539,16 +542,16 @@ function forceReload() {
 
 const debouncedForceReload = debounce(forceReload, 1000);
 
-frappe.realtime.on("budget_data_updated", (msg) => {
+frappe.realtime.on('budget_data_updated', (msg) => {
 	// обновление только нужного
 	if (window.current_organization_bank_rules_select != msg.organization_bank_rule_name) {
 		return;
 	}
 	// если придёт 100 событий подряд, за 5 сек вызовется только один раз
-	debouncedUpdate(msg.organization_bank_rule_name, window.current_number_of_days_select || "7");
+	debouncedUpdate(msg.organization_bank_rule_name, window.current_number_of_days_select || '7');
 });
 
-frappe.realtime.on("require_budget-operations-excel-editor_refresh", (msg) => {
+frappe.realtime.on('require_budget-operations-excel-editor_refresh', (msg) => {
 	debouncedForceReload();
 });
 
@@ -560,7 +563,7 @@ function loadDataWithRetry(retries = 3, delay = 100) {
 	window
 		.setup_excel_editor_table(
 			window.current_organization_bank_rules_select,
-			window.current_number_of_days_select
+			window.current_number_of_days_select,
 		)
 		.catch((err) => {
 			if (retries > 0) {
@@ -568,17 +571,17 @@ function loadDataWithRetry(retries = 3, delay = 100) {
 				setTimeout(() => loadDataWithRetry(retries - 1, delay * 2), delay);
 			} else {
 				frappe.msgprint({
-					title: __("Error loading data"),
-					message: __("Failed to load data after multiple servers."),
-					indicator: "red",
+					title: __('Error loading data'),
+					message: __('Failed to load data after multiple servers.'),
+					indicator: 'red',
 				});
 			}
 		});
 }
 
 // Запуск после готовности DOM
-if (document.readyState === "complete" || document.readyState === "interactive") {
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
 	loadDataWithRetry();
 } else {
-	document.addEventListener("DOMContentLoaded", loadDataWithRetry);
+	document.addEventListener('DOMContentLoaded', loadDataWithRetry);
 }
