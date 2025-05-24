@@ -888,6 +888,7 @@ def calculate_remaining_type_movement_of_budget_operations(organization_bank_rul
 
 
 def save_movement_of_budget_operations(target_date, organization_bank_rule, sum, budget_balance_type):
+	raise Exception(f"{target_date}, {organization_bank_rule}, {sum} - {flt(sum)}, {budget_balance_type}")
 	"""
 	Если для заданной (date, organization_bank_rule, budget_balance_type)
 	запись существует — обновляем её, иначе создаём новую.
