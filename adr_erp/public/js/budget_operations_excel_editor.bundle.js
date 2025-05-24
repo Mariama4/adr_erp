@@ -75,16 +75,6 @@ function getMergeCellsConfig(data, dateColIndex = 0) {
  */
 function getHiddenColumnsIndices(colHeaders, data) {
 	return colHeaders.reduce((acc, header, index) => {
-		console.log(
-			header,
-			__('Comment'),
-			'Comment',
-			data,
-			index,
-			!data.some((row) => row[index] != null && row[index] !== ''),
-			(header.includes(__('Comment')) || header.includes('Comment')) &&
-				!data.some((row) => row[index] != null && row[index] !== ''),
-		);
 		if (
 			(header.includes(__('Comment')) || header.includes('Comment')) &&
 			!data.some((row) => row[index] != null && row[index] !== '')

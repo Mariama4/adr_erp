@@ -438,7 +438,7 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number
 
 
 @frappe.whitelist()
-@timed
+# @timed
 def save_budget_changes(organization_bank_rule_name, changes):
 	"""
 	Принимает список изменений с полями:
@@ -922,6 +922,7 @@ def save_movement_of_budget_operations(target_date, organization_bank_rule, sum,
 
 @timed
 def calculate_movements_of_budget_operations(organization_bank_rule_name, target_date):
+	frappe.logger("adr_erp").info(f"[{organization_bank_rule_name}] Расчёт на {target_date}")
 	# BUG: Двойной пересчет из-за создания двойных строк с одной датой (Только для дней, с которыми еще не было взаимодействия)
 	today = datetime.now(pytz.timezone("Europe/Moscow")).date()
 	target_date = (
