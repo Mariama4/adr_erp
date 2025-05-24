@@ -75,6 +75,7 @@ function getMergeCellsConfig(data, dateColIndex = 0) {
  */
 function getHiddenColumnsIndices(colHeaders, data) {
 	return colHeaders.reduce((acc, header, index) => {
+		console.log(header);
 		if (
 			header.includes(__('Comment')) &&
 			!data.some((row) => row[index] != null && row[index] !== '')
@@ -231,6 +232,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 	const raw = (message.data || []).map((r) => [...r]);
 	const data = restoreDatesInData(raw);
 	const colHeaders = message.colHeaders || [];
+	console.log(data, colHeaders);
 	const cols = message.columns || [];
 	const opTypes = Array.isArray(message.operationTypeNames) ? message.operationTypeNames : [];
 
