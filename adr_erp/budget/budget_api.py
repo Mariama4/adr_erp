@@ -915,7 +915,8 @@ def save_movement_of_budget_operations(target_date, organization_bank_rule, sum,
 		doc.budget_balance_type = budget_balance_type
 
 	# 4) В обоих случаях обновляем/устанавливаем поля
-	raise Exception(sum, flt(sum or 0), sum or 0)
+	if budget_balance_type == "Movement":
+		raise Exception(sum, flt(sum or 0), sum or 0)
 	doc.sum = flt(sum or 0)
 
 	# 5) Сохраняем
