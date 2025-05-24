@@ -82,7 +82,7 @@ function getHiddenColumnsIndices(colHeaders, data) {
 		) {
 			acc.push(index);
 		}
-		if (header.includes('Name') && header.endsWith('Name')) {
+		if (header.includes(__('Name')) && header.endsWith(__('Name'))) {
 			acc.push(index);
 		}
 		if (header == __('Group Index')) {
