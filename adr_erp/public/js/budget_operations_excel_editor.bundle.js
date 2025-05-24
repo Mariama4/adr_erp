@@ -75,17 +75,19 @@ function getMergeCellsConfig(data, dateColIndex = 0) {
  */
 function getHiddenColumnsIndices(colHeaders, data) {
 	return colHeaders.reduce((acc, header, index) => {
-		console.log(header);
 		if (
-			header.includes(__('Comment')) &&
+			(header.includes(__('Comment')) || header.includes('Comment')) &&
 			!data.some((row) => row[index] != null && row[index] !== '')
 		) {
 			acc.push(index);
 		}
-		if (header.includes(__('Name')) && header.endsWith(__('Name'))) {
+		if (
+			(header.includes(__('Name')) || header.includes('Name')) &&
+			(header.endsWith(__('Name')) || header.endsWith('Name'))
+		) {
 			acc.push(index);
 		}
-		if (header == __('Group Index')) {
+		if (header == __('Group Index') || header == 'Group Index') {
 			acc.push(index);
 		}
 		return acc;
@@ -228,11 +230,9 @@ function debounce(func, delay) {
  * Ожидается, что message имеет ключи: data, columns, colHeaders, operationTypeNames.
  */
 function initHandsontableInstance(message, organization_bank_rule_name, force_render = false) {
-	console.log(message);
 	const raw = (message.data || []).map((r) => [...r]);
 	const data = restoreDatesInData(raw);
 	const colHeaders = message.colHeaders || [];
-	console.log(data, colHeaders);
 	const cols = message.columns || [];
 	const opTypes = Array.isArray(message.operationTypeNames) ? message.operationTypeNames : [];
 
@@ -241,7 +241,6 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 
 	const mergeCells = getMergeCellsConfig(data, dateColIndex);
 	const hiddenCols = getHiddenColumnsIndices(colHeaders, data);
-	console.log(mergeCells, hiddenCols);
 	const { width, height } = calculateDimensions();
 	const contextMenuSettings = getContextMenuSettings(opTypes, organization_bank_rule_name);
 	const todayStr = new Date().toISOString().slice(0, 10);
@@ -308,7 +307,6 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 		maxRows: message.data.length,
 		allowInvalid: false,
 		afterGetColHeader: function (col, TH) {
-			console.log('afterGetColHeader start');
 			if (col >= 0) {
 				TH.style.fontWeight = 'bold';
 				TH.style.textAlign = 'center';
@@ -323,21 +321,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 				} else {
 					TH.style.backgroundColor = '#d3d3d3';
 				}
-				console.log(
-					'afterGetColHeader - ',
-					TH.style.backgroundColor,
-					col,
-					TH,
-					headerText,
-					headerText.includes(__('Comment')),
-					headerText.includes(__('Description')),
-					headerText.includes('Comment'),
-					headerText.includes('Description'),
-					__('Comment'),
-					__('Description'),
-				);
 			}
-			console.log('afterGetColHeader end');
 		},
 		cells: function (row, col, prop) {
 			const cellMeta = {};
