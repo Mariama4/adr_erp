@@ -660,13 +660,12 @@ def calculate_movement_type_movement_of_budget_operations(organization_bank_rule
 				"group_index",
 			],
 		)
-		raise Exception(f" 1 {budget_operations}")
 		for budget_operation in budget_operations:
 			# План
 			entry_type = frappe.get_value("Expense items", budget_operation.expense_item, "entry_type")
-			if entry_type == "Debit":
+			if entry_type in ["Debit", _("Debit")]:
 				current_budget_operations_movements += budget_operation.sum
-			elif entry_type == "Credit":
+			elif entry_type in ["Credit", _("Credit")]:
 				current_budget_operations_movements -= budget_operation.sum
 	elif target_date < today_msk:
 		budget_operations = frappe.get_all(
@@ -688,13 +687,12 @@ def calculate_movement_type_movement_of_budget_operations(organization_bank_rule
 				"group_index",
 			],
 		)
-		raise Exception(f" 2 {budget_operations}")
 		for budget_operation in budget_operations:
 			# Факт
 			entry_type = frappe.get_value("Expense items", budget_operation.expense_item, "entry_type")
-			if entry_type == "Debit":
+			if entry_type in ["Debit", _("Debit")]:
 				current_budget_operations_movements += budget_operation.sum
-			elif entry_type == "Credit":
+			elif entry_type in ["Credit", _("Credit")]:
 				current_budget_operations_movements -= budget_operation.sum
 	else:
 		grouped_budget_operations = frappe.get_all(
@@ -710,7 +708,6 @@ def calculate_movement_type_movement_of_budget_operations(organization_bank_rule
 			],
 			distinct=True,
 		)
-		raise Exception(f" 3 {grouped_budget_operations}")
 		for group_budget_operation in grouped_budget_operations:
 			budget_operations = frappe.get_all(
 				"Budget Operations",
@@ -748,9 +745,9 @@ def calculate_movement_type_movement_of_budget_operations(organization_bank_rule
 					entry_type = frappe.get_value(
 						"Expense items", budget_operation.expense_item, "entry_type"
 					)
-					if entry_type == "Debit":
+					if entry_type in ["Debit", _("Debit")]:
 						current_budget_operations_movements += budget_operation.sum
-					elif entry_type == "Credit":
+					elif entry_type in ["Credit", _("Credit")]:
 						current_budget_operations_movements -= budget_operation.sum
 
 	return {
