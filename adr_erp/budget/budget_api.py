@@ -927,6 +927,18 @@ def save_movement_of_budget_operations(target_date, organization_bank_rule, sum,
 def calculate_movements_of_budget_operations(organization_bank_rule_name, target_date):
 	logger.debug(f"[{organization_bank_rule_name}] Расчёт на {target_date}")
 	logger.debug("Что-то пошло не так")
+	frappe.logger("frappe.web").debug("hello")
+	frappe.logger("frappe.web").debug(
+		{
+			"site": "frappeframework.com",
+			"remote_addr": "192.148.1.7",
+			"base_url": "https://frappeframework.com/docs/v14/user/en/api/logging",
+			"full_path": "/docs/v14/user/en/api/logging",
+			"method": "POST",
+			"scheme": "https",
+			"http_status_code": 200,
+		}
+	)
 	# BUG: Двойной пересчет из-за создания двойных строк с одной датой (Только для дней, с которыми еще не было взаимодействия)
 	today = datetime.now(pytz.timezone("Europe/Moscow")).date()
 	target_date = (
