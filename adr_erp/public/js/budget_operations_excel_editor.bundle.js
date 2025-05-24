@@ -313,7 +313,12 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 				TH.style.fontWeight = 'bold';
 				TH.style.textAlign = 'center';
 				const headerText = TH.innerText || '';
-				if (headerText.includes(__('Comment')) || headerText.includes(__('Description'))) {
+				if (
+					headerText.includes(__('Comment')) ||
+					headerText.includes('Comment') ||
+					headerText.includes(__('Description')) ||
+					headerText.includes('Description')
+				) {
 					TH.style.backgroundColor = '#FFCCCC';
 				} else {
 					TH.style.backgroundColor = '#d3d3d3';
@@ -328,6 +333,8 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 					headerText.includes(__('Description')),
 					headerText.includes('Comment'),
 					headerText.includes('Description'),
+					__('Comment'),
+					__('Description'),
 				);
 			}
 			console.log('afterGetColHeader end');
