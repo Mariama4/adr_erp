@@ -1002,14 +1002,6 @@ def calculate_movements_of_budget_operations(organization_bank_rule_name, target
 			calculated_remaining_type["current_budget_operations_remainings"],
 			"Remaining",
 		)
-		raise Exception(
-			[
-				calculated_balance_type,
-				calculated_movement_type,
-				calculated_transfer_type,
-				calculated_remaining_type,
-			]
-		)
 
 
 def publish_budget_change_by_update_budget_operation(doc, method):
