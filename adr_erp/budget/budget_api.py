@@ -637,45 +637,40 @@ def calculate_balance_type_movement_of_budget_operations(organization_bank_rule_
 # 2
 def calculate_movement_type_movement_of_budget_operations(organization_bank_rule_name, target_date):
 	today_msk = datetime.now(pytz.timezone("Europe/Moscow")).date()
+	metrics = []  # тут будем накапливать все сообщения
+
+	# приводим target_date к date, если строка
+	if isinstance(target_date, str):
+		target_date = datetime.strptime(target_date, "%Y-%m-%d").date()
+	metrics.append(f"Target date: {target_date}, today (MSK): {today_msk}")
 
 	current_budget_operations_movements = 0
 
+	# выбираем логику в зависимости от даты
 	if target_date > today_msk:
-		budget_operations = frappe.get_all(
-			"Budget Operations",
-			filters=[
-				["organization_bank_rule", "=", organization_bank_rule_name],
-				["date", "=", target_date],
-				["sum", ">", 0],
-				["budget_operation_type", "=", "План"],
-			],
-			fields=[
-				"name",
-				"date",
-				"budget_operation_type",
-				"organization_bank_rule",
-				"sum",
-				"expense_item",
-				"recipient_of_transit_payment",
-				"group_index",
-			],
-		)
-		for budget_operation in budget_operations:
-			# План
-			entry_type = frappe.get_value("Expense items", budget_operation.expense_item, "entry_type")
-			if entry_type == "Debit":
-				current_budget_operations_movements += budget_operation.sum
-			elif entry_type == "Credit":
-				current_budget_operations_movements -= budget_operation.sum
+		branch = "План (будущие операции)"
+		filters = [
+			["organization_bank_rule", "=", organization_bank_rule_name],
+			["date", "=", target_date],
+			["sum", ">", 0],
+			["budget_operation_type", "=", "План"],
+		]
 	elif target_date < today_msk:
-		budget_operations = frappe.get_all(
+		branch = "Факт (прошлые операции)"
+		filters = [
+			["organization_bank_rule", "=", organization_bank_rule_name],
+			["date", "=", target_date],
+			["sum", ">", 0],
+			["budget_operation_type", "=", "Факт"],
+		]
+	else:
+		branch = "Смешанный (группировка по группе и выбор Факт или План)"
+	metrics.append(f"Branch: {branch}")
+
+	if branch != "Смешанный (группировка по группе и выбор Факт или План)":
+		ops = frappe.get_all(
 			"Budget Operations",
-			filters=[
-				["organization_bank_rule", "=", organization_bank_rule_name],
-				["date", "=", target_date],
-				["sum", ">", 0],
-				["budget_operation_type", "=", "Факт"],
-			],
+			filters=filters,
 			fields=[
 				"name",
 				"date",
@@ -687,36 +682,45 @@ def calculate_movement_type_movement_of_budget_operations(organization_bank_rule
 				"group_index",
 			],
 		)
-		for budget_operation in budget_operations:
-			# Факт
-			entry_type = frappe.get_value("Expense items", budget_operation.expense_item, "entry_type")
-			if entry_type == "Debit":
-				current_budget_operations_movements += budget_operation.sum
-			elif entry_type == "Credit":
-				current_budget_operations_movements -= budget_operation.sum
+		metrics.append(f"Loaded {len(ops)} operations for branch '{branch}'")
+		for op in ops:
+			entry_type = frappe.get_value("Expense items", op.expense_item, "entry_type")
+			delta = op.sum if entry_type == "Debit" else -op.sum
+			current_budget_operations_movements += delta
+			metrics.append(
+				json.dumps(
+					{
+						"op": op.name,
+						"type": op.budget_operation_type,
+						"entry_type": entry_type,
+						"sum": op.sum,
+						"delta": delta,
+					},
+					ensure_ascii=False,
+				)
+			)
 	else:
-		grouped_budget_operations = frappe.get_all(
+		# сложная ветка: группируем по expense_item + group_index
+		groups = frappe.get_all(
 			"Budget Operations",
 			filters=[
 				["organization_bank_rule", "=", organization_bank_rule_name],
 				["date", "=", target_date],
 				["sum", ">", 0],
 			],
-			fields=[
-				"expense_item",
-				"group_index",
-			],
+			fields=["expense_item", "group_index"],
 			distinct=True,
 		)
-		for group_budget_operation in grouped_budget_operations:
-			budget_operations = frappe.get_all(
+		metrics.append(f"Found {len(groups)} groups for mixed branch")
+		for grp in groups:
+			ops = frappe.get_all(
 				"Budget Operations",
 				filters=[
 					["organization_bank_rule", "=", organization_bank_rule_name],
 					["date", "=", target_date],
 					["sum", ">", 0],
-					["expense_item", "=", group_budget_operation.expense_item],
-					["group_index", "=", group_budget_operation.group_index],
+					["expense_item", "=", grp.expense_item],
+					["group_index", "=", grp.group_index],
 				],
 				fields=[
 					"name",
@@ -729,27 +733,34 @@ def calculate_movement_type_movement_of_budget_operations(organization_bank_rule
 					"group_index",
 				],
 			)
-			allowed_budget_operation_type = (
-				"Факт"
-				if any(
-					[
-						budget_operation.budget_operation_type == "Факт"
-						for budget_operation in budget_operations
-					]
-				)
-				is True
-				else "План"
-			)
-			for budget_operation in budget_operations:
-				if budget_operation.budget_operation_type == allowed_budget_operation_type:
-					entry_type = frappe.get_value(
-						"Expense items", budget_operation.expense_item, "entry_type"
+			# выбираем Факт, если есть хотя бы одна операция с типом Факт
+			has_fact = any(op.budget_operation_type == "Факт" for op in ops)
+			use_type = "Факт" if has_fact else "План"
+			metrics.append(f"Group {grp.expense_item}/{grp.group_index}: use_type={use_type}, ops={len(ops)}")
+			for op in ops:
+				if op.budget_operation_type == use_type:
+					entry_type = frappe.get_value("Expense items", op.expense_item, "entry_type")
+					delta = op.sum if entry_type == "Debit" else -op.sum
+					current_budget_operations_movements += delta
+					metrics.append(
+						json.dumps(
+							{
+								"group": f"{grp.expense_item}/{grp.group_index}",
+								"op": op.name,
+								"type": use_type,
+								"entry_type": entry_type,
+								"sum": op.sum,
+								"delta": delta,
+							},
+							ensure_ascii=False,
+						)
 					)
-					if entry_type == "Debit":
-						current_budget_operations_movements += budget_operation.sum
-					elif entry_type == "Credit":
-						current_budget_operations_movements -= budget_operation.sum
 
+	# финальная метрика
+	metrics.append(f"Resulting sum: {current_budget_operations_movements}")
+
+	# выбрасываем исключение с полной детализацией
+	raise Exception("Metrics for calculate_movement_type:\n" + "\n".join(metrics))
 	return {
 		"current_budget_operations_movements": current_budget_operations_movements,
 	}
@@ -888,7 +899,6 @@ def calculate_remaining_type_movement_of_budget_operations(organization_bank_rul
 
 
 def save_movement_of_budget_operations(target_date, organization_bank_rule, sum, budget_balance_type):
-	raise Exception(f"{target_date}, {organization_bank_rule}, {sum} - {flt(sum)}, {budget_balance_type}")
 	"""
 	Если для заданной (date, organization_bank_rule, budget_balance_type)
 	запись существует — обновляем её, иначе создаём новую.
