@@ -79,10 +79,11 @@ function getHiddenColumnsIndices(colHeaders, data) {
 			header,
 			__('Comment'),
 			'Comment',
-			__('Name'),
-			'Name',
-			__('Group Index'),
-			'Group Index',
+			data,
+			index,
+			!data.some((row) => row[index] != null && row[index] !== ''),
+			(header.includes(__('Comment')) || header.includes('Comment')) &&
+				!data.some((row) => row[index] != null && row[index] !== ''),
 		);
 		if (
 			(header.includes(__('Comment')) || header.includes('Comment')) &&
