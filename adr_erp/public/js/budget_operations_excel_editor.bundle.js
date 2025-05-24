@@ -227,6 +227,7 @@ function debounce(func, delay) {
  * Ожидается, что message имеет ключи: data, columns, colHeaders, operationTypeNames.
  */
 function initHandsontableInstance(message, organization_bank_rule_name, force_render = false) {
+	console.log(message);
 	const raw = (message.data || []).map((r) => [...r]);
 	const data = restoreDatesInData(raw);
 	const colHeaders = message.colHeaders || [];
@@ -238,6 +239,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 
 	const mergeCells = getMergeCellsConfig(data, dateColIndex);
 	const hiddenCols = getHiddenColumnsIndices(colHeaders, data);
+	console.log(mergeCells, hiddenCols);
 	const { width, height } = calculateDimensions();
 	const contextMenuSettings = getContextMenuSettings(opTypes, organization_bank_rule_name);
 	const todayStr = new Date().toISOString().slice(0, 10);
@@ -304,6 +306,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 		maxRows: message.data.length,
 		allowInvalid: false,
 		afterGetColHeader: function (col, TH) {
+			console.log('afterGetColHeader start');
 			if (col >= 0) {
 				TH.style.fontWeight = 'bold';
 				TH.style.textAlign = 'center';
@@ -313,7 +316,9 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 				} else {
 					TH.style.backgroundColor = '#d3d3d3';
 				}
+				console.log('afterGetColHeader - ', TH.style.backgroundColor);
 			}
+			console.log('afterGetColHeader end');
 		},
 		cells: function (row, col, prop) {
 			const cellMeta = {};
