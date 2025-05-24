@@ -5,11 +5,9 @@ import frappe
 import pytz
 from frappe import _
 from frappe.utils import flt
+from frappe.utils.commands import log
 
 from .utils import timed
-
-frappe.utils.logger.set_log_level("DEBUG")
-logger = frappe.logger("backend", allow_site=True, file_count=50)
 
 
 def get_date_range(start_date, end_date):
@@ -925,22 +923,7 @@ def save_movement_of_budget_operations(target_date, organization_bank_rule, sum,
 
 @timed
 def calculate_movements_of_budget_operations(organization_bank_rule_name, target_date):
-	logger.debug(f"[{organization_bank_rule_name}] Расчёт на {target_date}")
-	logger.debug("Что-то пошло не так")
-	frappe.logger("frappe.web").debug("hello")
-	frappe.logger("frappe.web").debug(
-		{
-			"site": "frappeframework.com",
-			"remote_addr": "192.148.1.7",
-			"base_url": "https://frappeframework.com/docs/v14/user/en/api/logging",
-			"full_path": "/docs/v14/user/en/api/logging",
-			"method": "POST",
-			"scheme": "https",
-			"http_status_code": 200,
-		}
-	)
-	frappe.logger().debug("HELLLOOOOOOOO")
-	print("HEEEEEELLOOOOOOO!")
+	log("HELLO")
 	# BUG: Двойной пересчет из-за создания двойных строк с одной датой (Только для дней, с которыми еще не было взаимодействия)
 	today = datetime.now(pytz.timezone("Europe/Moscow")).date()
 	target_date = (
