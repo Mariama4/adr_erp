@@ -1,7 +1,8 @@
 // Инициализация страницы "budget-operations-excel-editor"
-frappe.pages["budget-operations-excel-editor"].on_page_load = function (wrapper) {
+frappe.pages['budget-operations-excel-editor'].on_page_load = function (wrapper) {
+	// loadHandsontableStyles();
 	// 1) Запоминаем, было ли уже full-width
-	const initialFull = JSON.parse(localStorage.container_fullwidth || "false");
+	const initialFull = JSON.parse(localStorage.container_fullwidth || 'false');
 	wrapper._initialFullwidth = initialFull;
 
 	// 2) Если изначально не было — включаем
@@ -10,12 +11,11 @@ frappe.pages["budget-operations-excel-editor"].on_page_load = function (wrapper)
 		wrapper._toggledFullwidth = true;
 	}
 
-	loadHandsontableStyles();
 	new PageContent(wrapper);
 };
 
 // Когда пользователь уходит с этой страницы — возвращаем предыдущий режим
-frappe.pages["budget-operations-excel-editor"].on_page_hide = function (wrapper) {
+frappe.pages['budget-operations-excel-editor'].on_page_hide = function (wrapper) {
 	// Если мы включали full-width сами — выключаем
 	if (wrapper._toggledFullwidth) {
 		frappe.ui.toolbar.toggle_full_width();
@@ -26,13 +26,17 @@ frappe.pages["budget-operations-excel-editor"].on_page_hide = function (wrapper)
  * Загружает CSS-стили Handsontable, если они ещё не подключены.
  */
 function loadHandsontableStyles() {
-	const styles = [
-		"https://cdn.jsdelivr.net/npm/handsontable/styles/handsontable.min.css",
-		"https://cdn.jsdelivr.net/npm/handsontable/styles/ht-theme-main.min.css",
+	const urls = [
+		'https://cdn.jsdelivr.net/npm/handsontable@12.1.0/dist/handsontable.full.min.css',
+		'https://cdn.jsdelivr.net/npm/handsontable@12.1.0/dist/ht-theme-main.min.css',
 	];
-	styles.forEach((url) => {
-		if (!$(`link[href="${url}"]`).length) {
-			$("head").append(`<link rel="stylesheet" href="${url}" />`);
+	const head = document.head || document.getElementsByTagName('head')[0];
+	urls.forEach((url) => {
+		if (!document.querySelector(`link[href="${url}"]`)) {
+			const link = document.createElement('link');
+			link.rel = 'stylesheet';
+			link.href = url;
+			head.appendChild(link);
 		}
 	});
 }
@@ -44,35 +48,42 @@ const PageContent = Class.extend({
 	init: function (wrapper) {
 		this.page = frappe.ui.make_app_page({
 			parent: wrapper,
-			title: __("Budget planning (Excel)"),
+			title: __('Budget planning (Excel)'),
 			single_column: true,
 		});
 		// Подключаем бандл скриптов Excel-редактора, если нужны дополнительные зависимости
-		frappe.require(["budget_operations_excel_editor.bundle.js"]).then(() => {});
-		this.make();
+		frappe
+			.require([
+				'budget_operations_excel_editor.bundle.js',
+				'https://cdn.jsdelivr.net/npm/handsontable@12.1.0/dist/handsontable.full.min.css',
+				'https://cdn.jsdelivr.net/npm/handsontable@12.1.0/dist/handsontable.full.min.js',
+			])
+			.then(() => {
+				this.make();
+			});
 	},
 
 	make: function () {
 		// Получаем список правил для банка и заполняем select-поле
 		frappe.db
-			.get_list("Organization-Bank Rules", {
+			.get_list('Organization-Bank Rules', {
 				fields: [],
-				order_by: "creation asc",
+				order_by: 'creation asc',
 			})
 			.then((records) => {
 				const organization_bank_rules_select = records.map((r) => r.name);
 				if (!organization_bank_rules_select.length) {
 					frappe.msgprint({
-						title: __("Warning"),
+						title: __('Warning'),
 						message: __("No 'Organization-Bank Rules' available"),
-						indicator: "yellow",
+						indicator: 'yellow',
 					});
 					return;
 				}
 
 				// Читаем прошлый выбор (если есть)
-				const savedOrg = localStorage.getItem("budget_ops_org");
-				const savedDays = localStorage.getItem("budget_ops_days");
+				const savedOrg = localStorage.getItem('budget_ops_org');
+				const savedDays = localStorage.getItem('budget_ops_days');
 
 				// Подставляем либо сохранённое, либо первый/7
 				window.current_organization_bank_rules_select =
@@ -81,46 +92,46 @@ const PageContent = Class.extend({
 						: organization_bank_rules_select[0];
 
 				window.current_number_of_days_select =
-					savedDays && +savedDays >= 1 && +savedDays <= 99 ? savedDays : "7";
+					savedDays && +savedDays >= 1 && +savedDays <= 99 ? savedDays : '7';
 
-				this.page.set_indicator(__("Online"), "green");
+				this.page.set_indicator(__('Online'), 'green');
 				this.page.add_field({
-					label: __("Organization Bank Rules"),
-					fieldtype: "Select",
-					fieldname: "organization_bank_rules_select",
-					options: organization_bank_rules_select.join("\n"),
+					label: __('Organization Bank Rules'),
+					fieldtype: 'Select',
+					fieldname: 'organization_bank_rules_select',
+					options: organization_bank_rules_select.join('\n'),
 					default: window.current_organization_bank_rules_select,
 					change() {
-						localStorage.setItem("budget_ops_org", this.get_value());
+						localStorage.setItem('budget_ops_org', this.get_value());
 						window.current_organization_bank_rules_select = this.get_value();
 						window.setup_excel_editor_table(
 							window.current_organization_bank_rules_select,
 							window.current_number_of_days_select,
-							true
+							true,
 						);
 					},
 				});
 
-				const nums = Array.from({ length: 99 }, (_, i) => i + 1).join("\n");
+				const nums = Array.from({ length: 99 }, (_, i) => i + 1).join('\n');
 				this.page.add_field({
-					label: __("Select number of days"),
-					fieldtype: "Select",
-					fieldname: "number_of_days_select",
+					label: __('Select number of days'),
+					fieldtype: 'Select',
+					fieldname: 'number_of_days_select',
 					options: nums,
 					default: window.current_number_of_days_select,
 					change() {
-						localStorage.setItem("budget_ops_days", this.get_value());
+						localStorage.setItem('budget_ops_days', this.get_value());
 						window.current_number_of_days_select = this.get_value();
 						window.setup_excel_editor_table(
 							window.current_organization_bank_rules_select,
 							window.current_number_of_days_select,
-							true
+							true,
 						);
 					},
 				});
 			});
 
 		// Рендерим шаблон страницы (если есть необходимость оформления через шаблон)
-		$(frappe.render_template("budget_operations_excel_editor", this)).appendTo(this.page.main);
+		$(frappe.render_template('budget_operations_excel_editor', this)).appendTo(this.page.main);
 	},
 });
