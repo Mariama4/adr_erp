@@ -690,6 +690,7 @@ def calculate_movement_type_movement_of_budget_operations(organization_bank_rule
 		for budget_operation in budget_operations:
 			# Факт
 			entry_type = frappe.get_value("Expense items", budget_operation.expense_item, "entry_type")
+			raise Exception(f" {budget_operations}  {entry_type}")
 			if entry_type in ["Debit", _("Debit")]:
 				current_budget_operations_movements += budget_operation.sum
 			elif entry_type in ["Credit", _("Credit")]:
