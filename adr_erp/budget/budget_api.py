@@ -939,6 +939,7 @@ def calculate_movements_of_budget_operations(organization_bank_rule_name, target
 			"http_status_code": 200,
 		}
 	)
+	frappe.logger().debug("HELLLOOOOOOOO")
 	# BUG: Двойной пересчет из-за создания двойных строк с одной датой (Только для дней, с которыми еще не было взаимодействия)
 	today = datetime.now(pytz.timezone("Europe/Moscow")).date()
 	target_date = (
