@@ -214,18 +214,17 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 				}
 			)
 
-		if expense["allowed_external_recipients"]:
-			allowed_external_recipients_label = _("{0} External Recipient").format(name)
-			colHeaders.append(allowed_external_recipients_label)
-			columns.append(
-				{
-					"field": f"{name}_external_recipient",
-					"label": allowed_external_recipients_label,
-					"type": "dropdown",
-					"source": expense["allowed_external_recipients"],
-					"className": "htCenter htMiddle",
-				}
-			)
+		allowed_external_recipients_label = _("{0} External Recipient").format(name)
+		colHeaders.append(allowed_external_recipients_label)
+		columns.append(
+			{
+				"field": f"{name}_external_recipient",
+				"label": allowed_external_recipients_label,
+				"type": "dropdown",
+				"source": expense["allowed_external_recipients"],
+				"className": "htCenter htMiddle",
+			}
+		)
 
 		# Колонка для описания
 		desc_label = _("{0} Description").format(name)
