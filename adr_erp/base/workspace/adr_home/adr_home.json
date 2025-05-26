@@ -1,7 +1,7 @@
 {
  "app": "adr_erp",
  "charts": [],
- "content": "[{\"id\":\"cT_WNG2nrf\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">home</span>\",\"col\":12}},{\"id\":\"pFaeRL2wOs\",\"type\":\"card\",\"data\":{\"card_name\":\"\u041a\u0430\u0441\u0442\u043e\u043c\u043d\u044b\u0435 \u0421\u0442\u0440\u0430\u043d\u0438\u0446\u044b\",\"col\":4}},{\"id\":\"-M_sVy6HMV\",\"type\":\"card\",\"data\":{\"card_name\":\"\u0421\u043f\u0440\u0430\u0432\u043e\u0447\u043d\u0438\u043a\u0438\",\"col\":4}}]",
+ "content": "[{\"id\":\"cT_WNG2nrf\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">home</span>\",\"col\":12}},{\"id\":\"pFaeRL2wOs\",\"type\":\"card\",\"data\":{\"card_name\":\"\u041a\u0430\u0441\u0442\u043e\u043c\u043d\u044b\u0435 \u0421\u0442\u0440\u0430\u043d\u0438\u0446\u044b\",\"col\":4}},{\"id\":\"-M_sVy6HMV\",\"type\":\"card\",\"data\":{\"card_name\":\"\u0421\u043f\u0440\u0430\u0432\u043e\u0447\u043d\u0438\u043a\u0438\",\"col\":5}}]",
  "creation": "2025-03-26 23:43:51.020108",
  "custom_blocks": [],
  "docstatus": 0,
@@ -39,7 +39,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "\u0421\u043f\u0440\u0430\u0432\u043e\u0447\u043d\u0438\u043a\u0438",
-   "link_count": 6,
+   "link_count": 7,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -103,9 +103,19 @@
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "\u0412\u043d\u0435\u0448\u043d\u0438\u0435 \u043f\u043e\u043b\u0443\u0447\u0430\u0442\u0435\u043b\u0438",
+   "link_count": 0,
+   "link_to": "External Recipients",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2025-05-23 12:15:36.037969",
+ "modified": "2025-05-26 17:55:44.488935",
  "modified_by": "Administrator",
  "module": "Base",
  "name": "ADR Home",
