@@ -8,7 +8,8 @@
  "field_order": [
   "organization",
   "bank",
-  "available_expense_items"
+  "available_expense_items",
+  "organization_bank_rule_status_timeline"
  ],
  "fields": [
   {
@@ -38,12 +39,18 @@
    "fieldtype": "Table MultiSelect",
    "label": "Available Expense items",
    "options": "Link Expenses Items"
+  },
+  {
+   "fieldname": "organization_bank_rule_status_timeline",
+   "fieldtype": "Table",
+   "label": "Organization-Bank Rule Status Timeline",
+   "options": "Organization-Bank Rule Status Timeline Item"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-15 14:59:14.024713",
+ "modified": "2025-05-26 16:55:48.707673",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Organization-Bank Rules",
