@@ -529,12 +529,11 @@ function performUpdateData(newData) {
 }
 
 // оборачиваем реальный обновлятор в debounce
-const debouncedUpdate = debounce((rule, number_of_days) => {
+const debouncedUpdateNotification = debounce(() => {
 	frappe.show_alert({
 		message: __("Data updated"),
 		indicator: "blue",
 	});
-	window.setup_excel_editor_table(rule, number_of_days);
 }, 1000);
 
 function forceReload() {
@@ -556,7 +555,11 @@ frappe.realtime.on("budget_data_updated", (msg) => {
 		return;
 	}
 	// если придёт 100 событий подряд, за 5 сек вызовется только один раз
-	debouncedUpdate(msg.organization_bank_rule_name, window.current_number_of_days_select || "7");
+	debouncedUpdateNotification();
+	window.setup_excel_editor_table(
+		msg.organization_bank_rule_name,
+		window.current_number_of_days_select || "7"
+	);
 });
 
 frappe.realtime.on("require_budget-operations-excel-editor_refresh", (msg) => {
