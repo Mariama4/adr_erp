@@ -9,12 +9,13 @@
   "date",
   "budget_operation_type",
   "organization_bank_rule",
+  "group_index",
   "sum",
   "expense_item",
   "recipient_of_transit_payment",
+  "external_recipient",
   "description",
-  "comment",
-  "group_index"
+  "comment"
  ],
  "fields": [
   {
@@ -88,12 +89,18 @@
    "label": "Group index",
    "non_negative": 1,
    "reqd": 1
+  },
+  {
+   "fieldname": "external_recipient",
+   "fieldtype": "Link",
+   "label": "External Recipient",
+   "options": "External Recipients"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-23 13:02:06.842994",
+ "modified": "2025-05-26 17:19:40.015685",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Budget Operations",

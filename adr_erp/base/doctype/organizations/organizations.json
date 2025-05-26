@@ -7,7 +7,8 @@
  "engine": "InnoDB",
  "field_order": [
   "organization_name",
-  "inn"
+  "inn",
+  "status_timeline"
  ],
  "fields": [
   {
@@ -26,14 +27,20 @@
    "in_preview": 1,
    "in_standard_filter": 1,
    "label": "INN"
+  },
+  {
+   "fieldname": "status_timeline",
+   "fieldtype": "Table",
+   "label": "Status Timeline",
+   "options": "Organizations Status Timeline"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-14 14:21:01.929661",
+ "modified": "2025-05-26 17:28:05.530111",
  "modified_by": "Administrator",
- "module": "base",
+ "module": "Base",
  "name": "Organizations",
  "naming_rule": "By fieldname",
  "owner": "Administrator",

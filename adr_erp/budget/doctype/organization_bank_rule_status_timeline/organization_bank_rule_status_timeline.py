@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class OrganizationBankRuleStatusTimelineItem(Document):
+class OrganizationBankRuleStatusTimeline(Document):
 	pass

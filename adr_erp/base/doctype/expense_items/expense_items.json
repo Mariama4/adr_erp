@@ -8,6 +8,7 @@
  "field_order": [
   "expense_item_name",
   "entry_type",
+  "allowed_external_recipients",
   "is_transit",
   "is_read_only",
   "is_vat"
@@ -49,12 +50,18 @@
    "fieldname": "is_vat",
    "fieldtype": "Check",
    "label": "Is VAT"
+  },
+  {
+   "fieldname": "allowed_external_recipients",
+   "fieldtype": "Table MultiSelect",
+   "label": "Allowed External Recipients",
+   "options": "Link External Recipients"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-26 16:43:49.756575",
+ "modified": "2025-05-26 17:07:57.705567",
  "modified_by": "Administrator",
  "module": "Base",
  "name": "Expense Items",

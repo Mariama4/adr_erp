@@ -1,7 +1,8 @@
 {
  "actions": [],
  "allow_rename": 1,
- "creation": "2025-05-26 16:51:03.612700",
+ "autoname": "prompt",
+ "creation": "2025-05-26 17:22:13.963546",
  "doctype": "DocType",
  "editable_grid": 1,
  "engine": "InnoDB",
@@ -30,12 +31,12 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Status",
-   "options": "Active\nBlocked\nClosed",
+   "options": "Active\nIn Liquidation\nLiquidated",
    "reqd": 1
   },
   {
    "fieldname": "comment",
-   "fieldtype": "Data",
+   "fieldtype": "Text",
    "in_list_view": 1,
    "label": "Comment"
   }
@@ -44,10 +45,11 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-05-26 16:59:28.981772",
+ "modified": "2025-05-26 17:29:11.845132",
  "modified_by": "Administrator",
- "module": "Budget",
- "name": "Organization-Bank Rule Status Timeline Item",
+ "module": "Base",
+ "name": "Organizations Status Timeline",
+ "naming_rule": "Set by user",
  "owner": "Administrator",
  "permissions": [],
  "row_format": "Dynamic",
