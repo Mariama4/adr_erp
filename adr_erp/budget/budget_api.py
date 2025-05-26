@@ -40,6 +40,7 @@ def fetch_budget_operations(organization_bank_rule_name, start_date, end_date):
 			"description",
 			"comment",
 			"group_index",
+			"external_recipient",
 		],
 	)
 	for op in ops:
@@ -69,12 +70,19 @@ def get_available_expense_items(org_bank_rule_name):
 	for item in doc.available_expense_items:
 		link = item.get("link_expense_item")
 		expense_doc = frappe.get_doc("Expense Items", link)
+		allowed_external_recipients = []
+		for allowed_external_recipient in expense_doc.allowed_external_recipients:
+			external_recipient_doc = frappe.get_doc(
+				"External Recipients", allowed_external_recipient.external_recipient_item
+			)
+			allowed_external_recipients.append(external_recipient_doc.name)
 		available_items.append(
 			{
 				"name": expense_doc.name,
 				"is_transit": expense_doc.is_transit,
 				"entry_type": expense_doc.entry_type,
 				"is_read_only": expense_doc.is_read_only,
+				"allowed_external_recipients": allowed_external_recipients,
 			}
 		)
 	available_items.sort(key=lambda x: x["entry_type"], reverse=True)
@@ -206,6 +214,19 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 				}
 			)
 
+		if expense["allowed_external_recipients"]:
+			allowed_external_recipients_label = _("{0} External Recipient").format(name)
+			colHeaders.append(allowed_external_recipients_label)
+			columns.append(
+				{
+					"field": f"{name}_external_recipient",
+					"label": allowed_external_recipients_label,
+					"type": "dropdown",
+					"source": expense["allowed_external_recipients"],
+					"className": "htCenter htMiddle",
+				}
+			)
+
 		# Колонка для описания
 		desc_label = _("{0} Description").format(name)
 		colHeaders.append(desc_label)
@@ -284,6 +305,11 @@ def fill_row_from_op(row, op, field_to_index):
 	# Сумма
 	if base in field_to_index:
 		row[field_to_index[base]] = op.get("sum", row[field_to_index[base]])
+
+	# External Recipient
+	erfield = f"{base}_external_recipient"
+	if erfield in field_to_index:
+		row[field_to_index[erfield]] = op.get("external_recipient", row[field_to_index[erfield]])
 
 	# Transit
 	tfield = f"{base}_transit"
@@ -483,6 +509,7 @@ def save_budget_changes(organization_bank_rule_name, changes):
 		doc.recipient_of_transit_payment = ""
 		doc.description = ""
 		doc.comment = ""
+		doc.external_recipient = ""
 		doc.save()
 		return doc
 
@@ -569,6 +596,7 @@ def save_budget_changes(organization_bank_rule_name, changes):
 		doc.recipient_of_transit_payment = ch.get("recipient_of_transit_payment") or ""
 		doc.description = ch.get("description") or ""
 		doc.comment = ch.get("comment") or ""
+		doc.external_recipient = ch.get("external_recipient") or ""
 		doc.save()
 
 		# если это План – убеждаемся, что для того же group_index есть Факт

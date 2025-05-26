@@ -176,31 +176,42 @@ function getContextMenuSettings(operationTypeNames = [], organization_bank_rule_
 			add_col_comment: {
 				name: __("Add comment"),
 				callback: function (key, selection) {
-					let hiddenCols = this.getSettings().hiddenColumns.columns || [];
-					let newHiddenCols = Array.isArray(hiddenCols) ? [...hiddenCols] : [];
+					const settings = this.getSettings();
+					const colsMeta = settings.columns || [];
+					// текущие скрытые колонки
+					const hiddenCols = Array.isArray(settings.hiddenColumns.columns)
+						? [...settings.hiddenColumns.columns]
+						: [];
+
 					selection.forEach((sel) => {
-						let targetCol = sel.end.col;
-						let checkRange = 3;
-						const nextColHeader = this.getColHeader(targetCol + 1);
-						if (nextColHeader && nextColHeader.includes(__("Transit"))) {
-							checkRange = 4;
-						}
-						while (
-							targetCol < this.countCols() &&
-							targetCol < sel.end.col + checkRange
-						) {
-							if (newHiddenCols.includes(targetCol)) {
-								newHiddenCols = newHiddenCols.filter(
-									(colIndex) => colIndex !== targetCol
-								);
-								break;
+						const startCol = sel.end.col;
+						const colMeta = colsMeta[startCol];
+						if (!colMeta) return;
+
+						// Выделяем базовое имя статьи расхода (до первого '_')
+						const field = colMeta.field; // e.g. "Food_description" или "Food"
+						const base = field.includes("_") ? field.split("_")[0] : field;
+
+						// Ищем именно колонку комментария для этой статьи
+						const commentField = `${base}_comment`;
+						const commentIdx = colsMeta.findIndex((c) => c.field === commentField);
+
+						if (commentIdx >= 0) {
+							const hiddenIdx = hiddenCols.indexOf(commentIdx);
+							if (hiddenIdx >= 0) {
+								// уже скрыта — показываем
+								hiddenCols.splice(hiddenIdx, 1);
+							} else {
+								// не скрыта — скрываем
+								hiddenCols.push(commentIdx);
 							}
-							targetCol++;
 						}
 					});
+
+					// Применяем обновлённый список скрытых столбцов
 					this.updateSettings({
 						hiddenColumns: {
-							columns: newHiddenCols,
+							columns: hiddenCols,
 							indicators: true,
 						},
 					});
@@ -291,7 +302,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 		autoWrapCol: true,
 		manualColumnResize: true,
 		colWidths: [105, 60, 60, 105, 105, 105, 105].concat(
-			Array.from({ length: message.columns.length - 2 }, (_, i) => [100, 150, 150][i % 3])
+			new Array(message.columns.length - 2).fill(150)
 		),
 		colHeaders: message.colHeaders,
 		mergeCells: mergeCells,
@@ -315,7 +326,11 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 					headerText.includes(__("Comment")) ||
 					headerText.includes("Comment") ||
 					headerText.includes(__("Description")) ||
-					headerText.includes("Description")
+					headerText.includes("Description") ||
+					headerText.includes("External Recipient") ||
+					headerText.includes(__("External Recipient")) ||
+					headerText.includes("Transit") ||
+					headerText.includes(__("Transit"))
 				) {
 					TH.style.backgroundColor = "#FFCCCC";
 				} else {
@@ -325,7 +340,6 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 		},
 		cells: function (row, col, prop) {
 			const cellMeta = {};
-			// if (col === dateColIndex) {
 			cellMeta.renderer = function (hotInst, TD, r, c, prop, value, cellProps) {
 				// 1) стандартная отрисовка текста и базовых стилей
 				Handsontable.renderers.TextRenderer.apply(this, arguments);
@@ -358,7 +372,6 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 					if (r === range.to) TD.style.borderBottom = b;
 				}
 			};
-			// }
 			return cellMeta;
 		},
 		// Обработчик изменений в таблице. Если изменения были внесены пользователем,
@@ -407,6 +420,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 				const transitIdx = findField(`${base}_transit`);
 				const descIdx = findField(`${base}_description`);
 				const commIdx = findField(`${base}_comment`);
+				const externalRecipientIdx = findField(`${base}_external_recipient`);
 
 				return {
 					name: idIdx >= 0 ? rowArr[idIdx] : null,
@@ -415,6 +429,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 					expense_item: base,
 					sum: rowArr[sumIdx],
 					recipient_of_transit_payment: rowArr[transitIdx],
+					external_recipient: rowArr[externalRecipientIdx],
 					description: rowArr[descIdx],
 					comment: rowArr[commIdx],
 					group_index: rowOrdinalMap[rowIndex], // добавили порядковый номер
