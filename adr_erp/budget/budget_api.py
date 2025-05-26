@@ -104,8 +104,8 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 		{
 			"field": "budget_operation_type",
 			"label": _("Budget Operation Type"),
-			"type": "dropdown",
-			"source": operation_type_names,
+			"type": "select",
+			"selectOptions": operation_type_names,
 			"editor": False,
 			"className": "htCenter htMiddle",
 		},
@@ -200,8 +200,8 @@ def build_columns_and_headers(operation_type_names, available_expense_items, org
 				{
 					"field": f"{name}_transit",
 					"label": transit_label,
-					"type": "dropdown",
-					"source": organization_bank_rules_names,
+					"type": "select",
+					"selectOptions": organization_bank_rules_names,
 					"className": "htCenter htMiddle",
 				}
 			)
