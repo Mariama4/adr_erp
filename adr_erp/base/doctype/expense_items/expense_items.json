@@ -7,9 +7,10 @@
  "engine": "InnoDB",
  "field_order": [
   "expense_item_name",
-  "is_transit",
   "entry_type",
-  "is_read_only"
+  "is_transit",
+  "is_read_only",
+  "is_vat"
  ],
  "fields": [
   {
@@ -42,12 +43,18 @@
    "fieldname": "is_read_only",
    "fieldtype": "Check",
    "label": "Is read only"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_vat",
+   "fieldtype": "Check",
+   "label": "Is VAT"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-23 14:39:16.964602",
+ "modified": "2025-05-26 16:43:49.756575",
  "modified_by": "Administrator",
  "module": "Base",
  "name": "Expense Items",
