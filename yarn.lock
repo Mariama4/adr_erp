@@ -36,10 +36,10 @@ dompurify@^3.1.7:
   optionalDependencies:
     "@types/trusted-types" "^2.0.7"
 
-handsontable@^15.2.0:
-  version "15.2.0"
-  resolved "https://registry.yarnpkg.com/handsontable/-/handsontable-15.2.0.tgz#e3a2e3049438761e419389e819725bd18080e429"
-  integrity sha512-QccHZkowqciFgyUyG/BUidatHpDkkUgx1O6v6czpU/ZgT3blmEpNFhErblC/JsWb6uVxbDfgW2vpW5eQNsU8GA==
+handsontable@^15.3.0:
+  version "15.3.0"
+  resolved "https://registry.yarnpkg.com/handsontable/-/handsontable-15.3.0.tgz#e1cd55dab9b14999d66953522b2434f3ad695760"
+  integrity sha512-3ZnrLv53Aw7LPdJz9gBJEspnrE7LyjXeYV55hN1+5M8XmNJcROaYaMAwPYztH6MGCV2OQ/njDxWs5LDb+fSOAg==
   dependencies:
     "@handsontable/pikaday" "^1.0.0"
     core-js "^3.37.0"
