@@ -296,7 +296,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 	const hotSettings = {
 		data: message.data,
 		columns: message.columns,
-		fixedColumnsStart: 2,
+		fixedColumnsStart: 7,
 		rowHeaders: true,
 		autoWrapRow: true,
 		autoWrapCol: true,
