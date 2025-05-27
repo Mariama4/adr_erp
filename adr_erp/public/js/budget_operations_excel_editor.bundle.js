@@ -341,31 +341,30 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 		},
 		cells: function (row, col, prop) {
 			const cellMeta = {};
+
 			cellMeta.renderer = function (hotInst, TD, r, c, prop, value, cellProps) {
-				// 1) стандартная отрисовка текста и базовых стилей
+				// 1) базовый текстовый рендер
 				Handsontable.renderers.TextRenderer.apply(this, arguments);
 
-				// 2) каждый раз очищаем фон
+				// 2) очищаем фон
 				TD.style.backgroundColor = "";
 
-				// 2) фон для каждой второй группы
-				const groupIdx = groupIndexMap[r];
-				if (groupIdx !== undefined && groupIdx % 2 === 1 && col > 6) {
-					TD.style.backgroundColor = "rgba(174, 174, 174, 0.2)";
-				} else {
-					TD.style.backgroundColor = "";
-				}
-
-				// 3) зелёная подсветка сегодняшней даты (перекрывает серый)
-				if (c === dateColIndex && value === todayStr) {
+				// 3) подсветка всех колонок 1–7 для текущего дня
+				const rowData = hotInst.getSourceDataAtRow(r);
+				if (rowData[dateColIndex] === todayStr && c >= 2 && c <= 7) {
 					TD.style.backgroundColor = "rgba(0, 255, 0, 0.2)";
 				}
 
-				// 4) рамки по группам
+				// 4) фон для каждой второй группы (по вашему коду)
+				const groupIdx = groupIndexMap[r];
+				if (groupIdx !== undefined && groupIdx % 2 === 1 && col > 6) {
+					TD.style.backgroundColor = "rgba(174, 174, 174, 0.2)";
+				}
+
+				// 5) рамки по группам
 				const range = groupRanges[r];
 				if (range) {
 					const b = "1px solid #000";
-					// сброс всех сторон
 					TD.style.border = "";
 					if (c === firstCol) TD.style.borderLeft = b;
 					if (c === lastCol) TD.style.borderRight = b;
@@ -373,6 +372,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 					if (r === range.to) TD.style.borderBottom = b;
 				}
 			};
+
 			return cellMeta;
 		},
 		// Обработчик изменений в таблице. Если изменения были внесены пользователем,

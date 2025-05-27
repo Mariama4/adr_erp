@@ -22,35 +22,31 @@
    "fieldname": "sum",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "in_preview": 1,
-   "in_standard_filter": 1,
    "label": "Sum"
   },
   {
    "fieldname": "expense_item",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "in_preview": 1,
-   "in_standard_filter": 1,
    "label": "Expense item",
    "options": "Expense Items"
   },
   {
    "fieldname": "description",
    "fieldtype": "Text",
+   "in_list_view": 1,
    "label": "Description"
   },
   {
    "fieldname": "comment",
    "fieldtype": "Text",
+   "in_list_view": 1,
    "label": "Comment"
   },
   {
    "fieldname": "organization_bank_rule",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "in_preview": 1,
-   "in_standard_filter": 1,
    "label": "Organization-Bank Rule",
    "options": "Organization-Bank Rules",
    "reqd": 1
@@ -58,6 +54,7 @@
   {
    "fieldname": "recipient_of_transit_payment",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "Recipient of transit payment (Organization-Bank Rule)",
    "options": "Organization-Bank Rules"
   },
@@ -65,8 +62,6 @@
    "fieldname": "date",
    "fieldtype": "Date",
    "in_list_view": 1,
-   "in_preview": 1,
-   "in_standard_filter": 1,
    "label": "Date",
    "reqd": 1
   },
@@ -74,8 +69,6 @@
    "fieldname": "budget_operation_type",
    "fieldtype": "Select",
    "in_list_view": 1,
-   "in_preview": 1,
-   "in_standard_filter": 1,
    "label": "Type",
    "options": "\u041f\u043b\u0430\u043d\n\u0424\u0430\u043a\u0442",
    "reqd": 1
@@ -93,6 +86,7 @@
   {
    "fieldname": "external_recipient",
    "fieldtype": "Link",
+   "in_list_view": 1,
    "label": "External Recipient",
    "options": "External Recipients"
   }
@@ -100,7 +94,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-26 17:19:40.015685",
+ "modified": "2025-05-27 14:31:25.634157",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Budget Operations",

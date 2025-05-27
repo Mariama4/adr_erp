@@ -2,15 +2,23 @@
  "actions": [],
  "allow_rename": 1,
  "autoname": "prompt",
- "creation": "2025-05-26 17:02:38.374346",
+ "creation": "2025-05-27 14:29:18.730380",
  "doctype": "DocType",
  "engine": "InnoDB",
- "field_order": [],
- "fields": [],
+ "field_order": [
+  "comment"
+ ],
+ "fields": [
+  {
+   "fieldname": "comment",
+   "fieldtype": "Text",
+   "label": "Comment"
+  }
+ ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-26 17:03:27.299965",
+ "modified": "2025-05-27 14:29:59.395690",
  "modified_by": "Administrator",
  "module": "Base",
  "name": "External Recipients",

@@ -22,10 +22,7 @@
   {
    "fieldname": "inn",
    "fieldtype": "Data",
-   "in_filter": 1,
    "in_list_view": 1,
-   "in_preview": 1,
-   "in_standard_filter": 1,
    "label": "INN"
   },
   {
@@ -38,7 +35,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-26 17:28:05.530111",
+ "modified": "2025-05-27 14:22:50.472291",
  "modified_by": "Administrator",
  "module": "Base",
  "name": "Organizations",
