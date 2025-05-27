@@ -349,9 +349,9 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 				// 2) очищаем фон
 				TD.style.backgroundColor = "";
 
-				// 3) подсветка всех колонок 1–7 для текущего дня
+				// 3) подсветка всех колонок 2–6 для текущего дня
 				const rowData = hotInst.getSourceDataAtRow(r);
-				if (rowData[dateColIndex] === todayStr && c >= 2 && c <= 7) {
+				if (rowData[dateColIndex] === todayStr && c >= 2 && c <= 6) {
 					TD.style.backgroundColor = "rgba(0, 255, 0, 0.2)";
 				}
 
