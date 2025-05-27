@@ -386,7 +386,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 			indicators: false,
 			copyPasteEnabled: false,
 		},
-		viewportRowRenderingOffset: 0,
+		viewportRowRenderingOffset: message.data.length - 1,
 		maxRows: message.data.length,
 		allowInvalid: false,
 		comments: true,
