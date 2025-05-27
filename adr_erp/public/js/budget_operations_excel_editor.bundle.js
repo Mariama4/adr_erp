@@ -304,6 +304,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 		colWidths: [105, 60, 60, 105, 105, 105, 105].concat(
 			new Array(message.columns.length - 2).fill(150)
 		),
+		rowHeights: 30,
 		colHeaders: message.colHeaders,
 		mergeCells: mergeCells,
 		width: width,
@@ -314,7 +315,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 			indicators: false,
 			copyPasteEnabled: false,
 		},
-		viewportRowRenderingOffset: 5,
+		viewportRowRenderingOffset: 0,
 		maxRows: message.data.length,
 		allowInvalid: false,
 		afterGetColHeader: function (col, TH) {
