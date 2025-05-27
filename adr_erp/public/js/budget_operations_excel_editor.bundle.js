@@ -327,9 +327,9 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 		columns: message.columns,
 		fixedColumnsStart: 7,
 		rowHeaders: true,
-		autoWrapRow: true,
-		autoWrapCol: true,
-		manualColumnResize: true,
+		autoWrapRow: false,
+		autoWrapCol: false,
+		manualColumnResize: false,
 		colWidths: [105, 60, 60, 105, 105, 105, 105].concat(
 			new Array(message.columns.length - 2).fill(150)
 		),
@@ -344,7 +344,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 			indicators: false,
 			copyPasteEnabled: false,
 		},
-		viewportRowRenderingOffset: 0,
+		viewportRowRenderingOffset: 10,
 		maxRows: message.data.length,
 		allowInvalid: false,
 		comments: true,
