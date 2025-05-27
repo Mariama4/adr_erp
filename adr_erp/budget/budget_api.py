@@ -697,16 +697,47 @@ def save_budget_changes(organization_bank_rule_name, changes):
 			if not exists:
 				create_op(target_date, "Факт", "", doc.group_index)
 
+	payload_calculate_movements = {}
+	uniq_organization_bank_rule_names = []
+
 	# --- основная логика ---
 	for ch in parse_changes(changes):
 		target_date = ch.get("date")
 		op_type = ch.get("budget_type")
 		expense_item = ch.get("expense_item") or ""
+		recipient_of_transit_payment = ch.get("recipient_of_transit_payment") or ""
 
 		if expense_item == "":
 			handle_empty_change(target_date, op_type)
 		else:
 			handle_non_empty_change(ch)
+
+		key = f"{target_date}_{organization_bank_rule_name}"
+		if key not in payload_calculate_movements:
+			payload_calculate_movements[key] = {
+				"target_date": target_date,
+				"organization_bank_rule_name": organization_bank_rule_name,
+			}
+
+			if organization_bank_rule_name not in uniq_organization_bank_rule_names:
+				uniq_organization_bank_rule_names.append(organization_bank_rule_name)
+
+			if recipient_of_transit_payment != "":
+				payload_calculate_movements[f"{target_date}_{recipient_of_transit_payment}"] = {
+					"target_date": target_date,
+					"organization_bank_rule_name": recipient_of_transit_payment,
+				}
+				if recipient_of_transit_payment not in uniq_organization_bank_rule_names:
+					uniq_organization_bank_rule_names.append(recipient_of_transit_payment)
+
+	for payload_calculate_movement in payload_calculate_movements:
+		calculate_movements_of_budget_operations(
+			payload_calculate_movements[payload_calculate_movement]["organization_bank_rule_name"],
+			payload_calculate_movements[payload_calculate_movement]["target_date"],
+		)
+
+	for uniq_organization_bank_rule_name in uniq_organization_bank_rule_names:
+		publish_budget_change(uniq_organization_bank_rule_name)
 
 	return {"success": True}
 
@@ -1032,7 +1063,6 @@ def save_movement_of_budget_operations(target_date, organization_bank_rule, sum,
 	doc.save()
 
 
-@timed
 def calculate_movements_of_budget_operations(organization_bank_rule_name, target_date):
 	# BUG: Двойной пересчет из-за создания двойных строк с одной датой (Только для дней, с которыми еще не было взаимодействия)
 	today = datetime.now(pytz.timezone("Europe/Moscow")).date()
@@ -1116,18 +1146,19 @@ def calculate_movements_of_budget_operations(organization_bank_rule_name, target
 
 
 def publish_budget_change_by_update_budget_operation(doc, method):
-	organization_bank_rule_name = doc.get("organization_bank_rule")
-	if not organization_bank_rule_name:
-		return
-	calculate_movements_of_budget_operations(organization_bank_rule_name, doc.date)
-	# Вызываем пересчет у того, кому сделали перевод
+	...
+	# organization_bank_rule_name = doc.get("organization_bank_rule")
+	# if not organization_bank_rule_name:
+	# 	return
+	# calculate_movements_of_budget_operations(organization_bank_rule_name, doc.date)
+	# # Вызываем пересчет у того, кому сделали перевод
 
-	if doc.expense_item != "":
-		doc_expense_item = frappe.get_doc("Expense Items", doc.expense_item)
-		if doc_expense_item.is_transit and doc.recipient_of_transit_payment != "":
-			calculate_movements_of_budget_operations(doc.recipient_of_transit_payment, doc.date)
-			publish_budget_change(doc.recipient_of_transit_payment)
-	publish_budget_change(organization_bank_rule_name)
+	# if doc.expense_item != "":
+	# 	doc_expense_item = frappe.get_doc("Expense Items", doc.expense_item)
+	# 	if doc_expense_item.is_transit and doc.recipient_of_transit_payment != "":
+	# 		calculate_movements_of_budget_operations(doc.recipient_of_transit_payment, doc.date)
+	# 		publish_budget_change(doc.recipient_of_transit_payment)
+	# publish_budget_change(organization_bank_rule_name)
 
 
 def get_autoname_pattern(doctype):
