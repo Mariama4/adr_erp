@@ -294,33 +294,75 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 	const firstCol = 0;
 	const lastCol = (colsMetaSettings.length || data[0].length) - 1;
 
-	const commentCells = [];
+	const cellMetaMap = Object.create(null);
 
-	// пройдёмся по всем строкам
+	function addCellMeta(r, c, { className, comment }) {
+		const key = `${r}:${c}`;
+		if (!cellMetaMap[key]) {
+			cellMetaMap[key] = {
+				row: r,
+				col: c,
+				classNames: [],
+				comment: null,
+			};
+			const baseAlign = colsMetaSettings[c].className || "";
+			cellMetaMap[key].classNames.push(baseAlign);
+		}
+		if (className) {
+			cellMetaMap[key].classNames.push(className);
+		}
+		if (comment) {
+			cellMetaMap[key].comment = comment;
+		}
+	}
+
+	// 2) Правило для комментариев
 	data.forEach((rowArr, r) => {
 		const date = rowArr[dateColIndex];
 		const info = dayStatuses[date];
 		if (info) {
-			// формируем текст комментария по шаблону
 			const txt = info.details
 				.map(
 					(d) =>
-						`Источник: ${d.source}, Статус: ${__("{0}", [
-							d.status.toLowerCase(),
-						])}, Комментарий: ${d.comment}`
+						`Источник: ${d.source}, Статус: ${d.status.toLowerCase()}, Комментарий: ${
+							d.comment
+						}`
 				)
 				.join("\n");
-			// добавляем одну запись в cell
-			commentCells.push({
-				row: r,
-				col: dateColIndex,
-				comment: {
-					value: txt,
-					readOnly: true,
-				},
+			addCellMeta(r, dateColIndex, {
+				className: `_${info.status.toLowerCase()}`,
+				comment: { value: txt, readOnly: true },
 			});
 		}
 	});
+
+	// 3) Зелёный фон для колонок 2–6 в текущий день
+	data.forEach((rowArr, r) => {
+		if (rowArr[dateColIndex] === todayStr) {
+			for (let c = 2; c <= 6; c++) {
+				addCellMeta(r, c, { className: "_htToday" });
+			}
+		}
+	});
+
+	// 4) Серая заливка для каждой второй группы (колонки ≥7)
+	data.forEach((_, r) => {
+		if (groupIndexMap[r] % 2 === 1) {
+			for (let c = 7; c < cols.length; c++) {
+				addCellMeta(r, c, { className: "_htGroupShade" });
+			}
+		}
+	});
+
+	// 5) Собираем массив для hotSettings.cell
+	const cellMetaArray = Object.values(cellMetaMap).map((meta) => ({
+		row: meta.row,
+		col: meta.col,
+		// если есть comment, передаём
+		...(meta.comment && { comment: meta.comment }),
+		// всегда передаём className — список классов через пробел
+		className: ["_htCommentCell", ...meta.classNames].join(" "),
+	}));
 
 	const hotSettings = {
 		data: message.data,
@@ -344,7 +386,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 			indicators: false,
 			copyPasteEnabled: false,
 		},
-		viewportRowRenderingOffset: 10,
+		viewportRowRenderingOffset: 0,
 		maxRows: message.data.length,
 		allowInvalid: false,
 		comments: true,
@@ -369,52 +411,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 				}
 			}
 		},
-		cell: commentCells,
-		cells: function (row, col, prop) {
-			const cellMeta = {};
-
-			cellMeta.renderer = function (hotInst, TD, r, c, prop, value, cellProps) {
-				// 1) базовый текстовый рендер
-				Handsontable.renderers.TextRenderer.apply(this, arguments);
-
-				// 2) очищаем фон
-				TD.style.backgroundColor = "";
-
-				// 3) подсветка всех колонок 2–6 для текущего дня
-				const rowData = hotInst.getSourceDataAtRow(r);
-				if (rowData[dateColIndex] === todayStr && c >= 2 && c <= 6) {
-					TD.style.backgroundColor = "rgba(0, 255, 0, 0.2)";
-				}
-
-				// 4) фон для каждой второй группы (по вашему коду)
-				const groupIdx = groupIndexMap[r];
-				if (groupIdx !== undefined && groupIdx % 2 === 1 && col > 6) {
-					TD.style.backgroundColor = "rgba(174, 174, 174, 0.2)";
-				}
-
-				// 5) рамки по группам
-				const range = groupRanges[r];
-				if (range) {
-					const b = "1px solid #000";
-					TD.style.border = "";
-					if (c === firstCol) TD.style.borderLeft = b;
-					if (c === lastCol) TD.style.borderRight = b;
-					if (r === range.from) TD.style.borderTop = b;
-					if (r === range.to) TD.style.borderBottom = b;
-				}
-
-				const info = dayStatuses[value];
-				if (c == firstCol && info) {
-					if (info.status.toLowerCase() == "warning") {
-						TD.style.backgroundColor = "rgba(255, 195, 55, 0.2)";
-					} else if (info.status.toLowerCase() == "alert") {
-						TD.style.backgroundColor = "rgba(255, 107, 107, 0.2)";
-					}
-				}
-			};
-
-			return cellMeta;
-		},
+		cell: cellMetaArray,
 		// Обработчик изменений в таблице. Если изменения были внесены пользователем,
 		// собираем payload и отправляем на сервер.
 		afterChange: (changes, source) => {
@@ -489,7 +486,6 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 
 	if (window.hotInstance && needFullRender) {
 		window.hotInstance.updateSettings(hotSettings);
-		window.hotInstance.loadData(message.data);
 	} else if (window.hotInstance) {
 		safeUpdateInstance(
 			{
