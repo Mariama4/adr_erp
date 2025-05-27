@@ -30,7 +30,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Status",
-   "options": "Active\nBlocked\nClosed",
+   "options": "Active\nBlocked\nRequest",
    "reqd": 1
   },
   {
@@ -44,7 +44,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-05-26 17:26:31.968326",
+ "modified": "2025-05-27 14:59:24.596585",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Organization-Bank Rule Status Timeline",
