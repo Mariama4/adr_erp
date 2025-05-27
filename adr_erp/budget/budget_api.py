@@ -4,10 +4,28 @@ from datetime import date, datetime, timedelta
 import frappe
 import pytz
 from frappe import _
-from frappe.utils import flt
-from frappe.utils.commands import log
+from frappe.utils import add_days, flt, getdate
 
 from .utils import timed
+
+DAYS_STATUSES = {
+	"DEFAULT": "Активный",
+	"WARNING": "Внимание",
+	"ALERT": "Важно",
+}
+
+STATUS_MAP = {
+	"Request": "WARNING",
+	"In Liquidation": "WARNING",
+	"Liquidated": "ALERT",
+	"Blocked": "ALERT",
+}
+
+PRIORITY = {
+	"DEFAULT": 0,
+	"WARNING": 1,
+	"ALERT": 2,
+}
 
 
 def get_date_range(start_date, end_date):
@@ -346,15 +364,81 @@ def get_budget_operations_types():
 	return options
 
 
+def _compute_effective_ranges(timeline):
+	items = sorted(timeline, key=lambda i: getdate(i.date_from))
+	ranges = []
+	for idx, item in enumerate(items):
+		start = getdate(item.date_from)
+		if item.date_to:
+			end = getdate(item.date_to)
+		else:
+			if idx + 1 < len(items):
+				next_start = getdate(items[idx + 1].date_from)
+				end = add_days(next_start, -1)
+			else:
+				end = None
+		ranges.append({"from": start, "to": end, "status": item.status, "comment": item.comment or ""})
+	return ranges
+
+
+def fill_days_statuses(organization_bank_rule_name, dates):
+	"""
+	Для каждой даты возвращает:
+	- итоговый status ("default"/"warning"/"alert"),
+	- details: список словарей {source, status, comment}.
+	"""
+	result = {d: {"status": DAYS_STATUSES["DEFAULT"], "details": []} for d in dates}
+
+	org_rule = frappe.get_doc("Organization-Bank Rules", organization_bank_rule_name)
+	org = frappe.get_doc("Organizations", org_rule.organization)
+
+	rule_ranges = _compute_effective_ranges(org_rule.status_timeline)
+	org_ranges = _compute_effective_ranges(org.status_timeline)
+
+	for d in dates:
+		dt = getdate(d)
+		best_prio = PRIORITY["DEFAULT"]
+		best_key = "DEFAULT"
+		details = []
+
+		# проверяем таймлайн правила
+		for r in rule_ranges:
+			if r["from"] <= dt and (r["to"] is None or dt <= r["to"]):
+				key = STATUS_MAP.get(r["status"], "DEFAULT")
+				pr = PRIORITY[key]
+				details.append(
+					{"source": organization_bank_rule_name, "status": key, "comment": r["comment"]}
+				)
+				if pr > best_prio:
+					best_prio = pr
+					best_key = key
+
+		# проверяем таймлайн организации
+		for r in org_ranges:
+			if r["from"] <= dt and (r["to"] is None or dt <= r["to"]):
+				key = STATUS_MAP.get(r["status"], "DEFAULT")
+				pr = PRIORITY[key]
+				details.append({"source": org.name, "status": key, "comment": r["comment"]})
+				if pr > best_prio:
+					best_prio = pr
+					best_key = key
+
+		result[d]["status"] = DAYS_STATUSES[best_key]
+		result[d]["details"] = details
+
+	return result
+
+
 @frappe.whitelist()
-@timed
 def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number_of_days):
-	result = {"data": [], "colHeaders": [], "columns": [], "operationTypeNames": []}
+	result = {"data": [], "colHeaders": [], "columns": [], "operationTypeNames": [], "daysStatuses": {}}
 
 	DAYS = int(number_of_days)
 	today = date.today()
 	start_date, end_date = today - timedelta(days=DAYS), today + timedelta(days=DAYS)
 	dates = get_date_range(start_date, end_date)
+
+	result["daysStatuses"] = fill_days_statuses(organization_bank_rule_name, dates)
 
 	# Получаем исходные данные и метаданные
 	budget_ops = fetch_budget_operations(organization_bank_rule_name, start_date, end_date)
@@ -465,7 +549,6 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number
 
 
 @frappe.whitelist()
-# @timed
 def save_budget_changes(organization_bank_rule_name, changes):
 	"""
 	Принимает список изменений с полями:

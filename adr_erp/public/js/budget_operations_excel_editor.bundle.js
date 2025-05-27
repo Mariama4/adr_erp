@@ -245,6 +245,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 	const data = restoreDatesInData(raw);
 	const colHeaders = message.colHeaders || [];
 	const cols = message.columns || [];
+	const dayStatuses = message.daysStatuses || {};
 	const opTypes = Array.isArray(message.operationTypeNames) ? message.operationTypeNames : [];
 
 	const colsMetaSettings = cols;
@@ -293,6 +294,34 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 	const firstCol = 0;
 	const lastCol = (colsMetaSettings.length || data[0].length) - 1;
 
+	const commentCells = [];
+
+	// пройдёмся по всем строкам
+	data.forEach((rowArr, r) => {
+		const date = rowArr[dateColIndex];
+		const info = dayStatuses[date];
+		if (info) {
+			// формируем текст комментария по шаблону
+			const txt = info.details
+				.map(
+					(d) =>
+						`Источник: ${d.source}, Статус: ${d.status.toLowerCase()}, Комментарий: ${
+							d.comment
+						}`
+				)
+				.join("\n");
+			// добавляем одну запись в cell
+			commentCells.push({
+				row: r,
+				col: dateColIndex,
+				comment: {
+					value: txt,
+					readOnly: true,
+				},
+			});
+		}
+	});
+
 	const hotSettings = {
 		data: message.data,
 		columns: message.columns,
@@ -318,6 +347,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 		viewportRowRenderingOffset: 0,
 		maxRows: message.data.length,
 		allowInvalid: false,
+		comments: true,
 		afterGetColHeader: function (col, TH) {
 			if (col >= 0) {
 				TH.style.fontWeight = "bold";
@@ -339,6 +369,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 				}
 			}
 		},
+		cell: commentCells,
 		cells: function (row, col, prop) {
 			const cellMeta = {};
 
@@ -370,6 +401,15 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 					if (c === lastCol) TD.style.borderRight = b;
 					if (r === range.from) TD.style.borderTop = b;
 					if (r === range.to) TD.style.borderBottom = b;
+				}
+
+				const info = dayStatuses[value];
+				if (c == firstCol && info) {
+					if (info.status.toLowerCase() == "warning") {
+						TD.style.backgroundColor = "rgba(255, 195, 55, 0.2)";
+					} else if (info.status.toLowerCase() == "alert") {
+						TD.style.backgroundColor = "rgba(255, 107, 107, 0.2)";
+					}
 				}
 			};
 

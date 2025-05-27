@@ -58,6 +58,7 @@ const PageContent = Class.extend({
 			.get_list("Organization-Bank Rules", {
 				fields: [],
 				order_by: "creation asc",
+				limit_page_length: null,
 			})
 			.then((records) => {
 				const organization_bank_rules_select = records.map((r) => r.name);
@@ -86,11 +87,14 @@ const PageContent = Class.extend({
 				this.page.set_indicator(__("Online"), "green");
 				this.page.add_field({
 					label: __("Organization Bank Rules"),
-					fieldtype: "Select",
+					fieldtype: "Link",
 					fieldname: "organization_bank_rules_select",
-					options: organization_bank_rules_select.join("\n"),
+					options: "Organization-Bank Rules", // DocType, из которого берём значения
 					default: window.current_organization_bank_rules_select,
 					change() {
+						if (this.get_value() == "") {
+							return;
+						}
 						localStorage.setItem("budget_ops_org", this.get_value());
 						window.current_organization_bank_rules_select = this.get_value();
 						window.setup_excel_editor_table(
