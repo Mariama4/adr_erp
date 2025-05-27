@@ -102,6 +102,10 @@ const PageContent = Class.extend({
 							window.current_number_of_days_select,
 							true
 						);
+						frappe.show_alert({
+							message: __("Data updated"),
+							indicator: "blue",
+						});
 					},
 				});
 
@@ -120,6 +124,10 @@ const PageContent = Class.extend({
 							window.current_number_of_days_select,
 							true
 						);
+						frappe.show_alert({
+							message: __("Data updated"),
+							indicator: "blue",
+						});
 					},
 				});
 			});

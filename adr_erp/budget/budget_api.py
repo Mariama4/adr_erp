@@ -9,9 +9,9 @@ from frappe.utils import add_days, flt, getdate
 from .utils import timed
 
 DAYS_STATUSES = {
-	"DEFAULT": "Активный",
-	"WARNING": "Внимание",
-	"ALERT": "Важно",
+	"DEFAULT": "default",
+	"WARNING": "warning",
+	"ALERT": "alert",
 }
 
 STATUS_MAP = {

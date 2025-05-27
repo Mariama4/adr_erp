@@ -305,9 +305,9 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 			const txt = info.details
 				.map(
 					(d) =>
-						`Источник: ${d.source}, Статус: ${d.status.toLowerCase()}, Комментарий: ${
-							d.comment
-						}`
+						`Источник: ${d.source}, Статус: ${__("{0}", [
+							d.status.toLowerCase(),
+						])}, Комментарий: ${d.comment}`
 				)
 				.join("\n");
 			// добавляем одну запись в cell
