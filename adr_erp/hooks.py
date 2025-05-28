@@ -170,23 +170,21 @@ doc_events = {
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"adr_erp.tasks.all"
-# 	],
-# 	"daily": [
-# 		"adr_erp.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"adr_erp.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"adr_erp.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"adr_erp.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	# 	"all": [
+	# 		"adr_erp.tasks.all"
+	# 	],
+	"daily": ["adr_erp.tasks.prepare_budget_movement_data"],
+	# 	"hourly": [
+	# 		"adr_erp.tasks.hourly"
+	# 	],
+	# 	"weekly": [
+	# 		"adr_erp.tasks.weekly"
+	# 	],
+	# 	"monthly": [
+	# 		"adr_erp.tasks.monthly"
+	# 	],
+}
 
 # Testing
 # -------

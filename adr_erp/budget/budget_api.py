@@ -1,5 +1,6 @@
 import json
 from datetime import date, datetime, timedelta
+from itertools import chain
 
 import frappe
 import pytz
@@ -699,10 +700,20 @@ def save_budget_changes(organization_bank_rule_name, changes):
 
 	payload_calculate_movements = {}
 	uniq_organization_bank_rule_names = []
-
+	recipients_of_transit_payment = []
+	max_date = None
+	min_date = None
 	# --- основная логика ---
 	for ch in parse_changes(changes):
 		target_date = ch.get("date")
+		_target_date = getdate(target_date)
+		if max_date is None:
+			max_date = _target_date
+		if min_date is None:
+			min_date = _target_date
+		max_date = _target_date if _target_date < max_date else max_date
+		min_date = _target_date if _target_date > min_date else min_date
+
 		op_type = ch.get("budget_type")
 		expense_item = ch.get("expense_item") or ""
 		recipient_of_transit_payment = ch.get("recipient_of_transit_payment") or ""
@@ -711,35 +722,72 @@ def save_budget_changes(organization_bank_rule_name, changes):
 			handle_empty_change(target_date, op_type)
 		else:
 			handle_non_empty_change(ch)
+			recipients_of_transit_payment.append(recipient_of_transit_payment)
 
-		key = f"{target_date}_{organization_bank_rule_name}"
-		if key not in payload_calculate_movements:
-			payload_calculate_movements[key] = {
-				"target_date": target_date,
-				"organization_bank_rule_name": organization_bank_rule_name,
+	frappe.enqueue(
+		"adr_erp.budget.budget_api.sub_computing",
+		queue="short",
+		timeout=600,
+		recipients_of_transit_payment=recipients_of_transit_payment,
+		payload_calculate_movements=payload_calculate_movements,
+		max_date=max_date,
+		min_date=min_date,
+		uniq_organization_bank_rule_names=uniq_organization_bank_rule_names,
+		organization_bank_rule_name=organization_bank_rule_name,
+	)
+
+	return {"success": True}
+
+
+@frappe.whitelist()
+def sub_computing(
+	recipients_of_transit_payment,
+	payload_calculate_movements,
+	max_date,
+	min_date,
+	uniq_organization_bank_rule_names,
+	organization_bank_rule_name,
+):
+	for recipient_of_transit_payment in recipients_of_transit_payment:
+		if recipient_of_transit_payment != "":
+			payload_calculate_movements[f"{max_date}_{min_date}_{recipient_of_transit_payment}"] = {
+				"min_date": min_date,
+				"target_date": max_date,
+				"organization_bank_rule_name": recipient_of_transit_payment,
 			}
+			if recipient_of_transit_payment not in uniq_organization_bank_rule_names:
+				uniq_organization_bank_rule_names.append(recipient_of_transit_payment)
 
-			if organization_bank_rule_name not in uniq_organization_bank_rule_names:
-				uniq_organization_bank_rule_names.append(organization_bank_rule_name)
+	key = f"{max_date}_{min_date}_{organization_bank_rule_name}"
+	if key not in payload_calculate_movements:
+		payload_calculate_movements[key] = {
+			"min_date": min_date,
+			"target_date": max_date,
+			"organization_bank_rule_name": organization_bank_rule_name,
+		}
 
-			if recipient_of_transit_payment != "":
-				payload_calculate_movements[f"{target_date}_{recipient_of_transit_payment}"] = {
-					"target_date": target_date,
-					"organization_bank_rule_name": recipient_of_transit_payment,
-				}
-				if recipient_of_transit_payment not in uniq_organization_bank_rule_names:
-					uniq_organization_bank_rule_names.append(recipient_of_transit_payment)
+		if organization_bank_rule_name not in uniq_organization_bank_rule_names:
+			uniq_organization_bank_rule_names.append(organization_bank_rule_name)
 
 	for payload_calculate_movement in payload_calculate_movements:
 		calculate_movements_of_budget_operations(
 			payload_calculate_movements[payload_calculate_movement]["organization_bank_rule_name"],
 			payload_calculate_movements[payload_calculate_movement]["target_date"],
+			compute_all=False,
+			min_target_data=payload_calculate_movements[payload_calculate_movement]["min_date"],
+		)
+		publish_budget_change(
+			payload_calculate_movements[payload_calculate_movement]["organization_bank_rule_name"]
+		)
+		frappe.enqueue(
+			"adr_erp.tasks.prepare_budget_movement_data",
+			queue="short",
+			timeout=600,
+			rule=payload_calculate_movements[payload_calculate_movement]["organization_bank_rule_name"],
+			target_date=payload_calculate_movements[payload_calculate_movement]["min_date"],
 		)
 
-	for uniq_organization_bank_rule_name in uniq_organization_bank_rule_names:
-		publish_budget_change(uniq_organization_bank_rule_name)
-
-	return {"success": True}
+	return True
 
 
 def publish_budget_change(organization_bank_rule_name):
@@ -755,25 +803,19 @@ def publish_budget_page_refresh():
 
 
 # 1
-def calculate_balance_type_movement_of_budget_operations(organization_bank_rule_name, target_date):
-	previous_target_date = target_date - timedelta(1)
-	rows = frappe.get_all(
+def calculate_balance_type_movement_of_budget_operations(rule, target_date):
+	prev = target_date - timedelta(days=1)
+	# мгновенно вернёт сумму или None
+	s = frappe.db.get_value(
 		"Movements of Budget Operations",
-		filters={
-			"organization_bank_rule": organization_bank_rule_name,
-			"date": previous_target_date,
+		{
+			"organization_bank_rule": rule,
+			"date": prev,
 			"budget_balance_type": "Remaining",
 		},
-		fields=["name", "sum"],
-		limit_page_length=1,
+		"sum",
 	)
-	if rows:
-		row = rows[0]
-		return {
-			"current_budget_operations_balances": flt(row.get("sum") or 0),
-		}
-	else:
-		return {"current_budget_operations_balances": 0.0}
+	return {"current_budget_operations_balances": flt(s or 0)}
 
 
 # 2
@@ -1034,6 +1076,9 @@ def save_movement_of_budget_operations(target_date, organization_bank_rule, sum,
 	Если для заданной (date, organization_bank_rule, budget_balance_type)
 	запись существует — обновляем её, иначе создаём новую.
 	"""
+
+	total = flt(sum or 0)
+
 	# 1) Подготовим фильтры для поиска
 	filters = {
 		"date": target_date,
@@ -1042,107 +1087,122 @@ def save_movement_of_budget_operations(target_date, organization_bank_rule, sum,
 	}
 
 	# 2) Поищем существующую запись
-	existing = frappe.get_all(
-		"Movements of Budget Operations", filters=filters, pluck="name", limit_page_length=1
-	)
+	existing_name = frappe.db.get_value("Movements of Budget Operations", filters, "name")
 
-	if existing:
+	if existing_name:
 		# 3a) Обновляем существующий документ
-		doc = frappe.get_doc("Movements of Budget Operations", existing[0])
+		doc = frappe.get_doc("Movements of Budget Operations", existing_name)
+		doc.sum = total
+		doc.db_update()
 	else:
-		# 3b) Создаём новую
-		doc = frappe.new_doc("Movements of Budget Operations")
-		doc.date = target_date
-		doc.organization_bank_rule = organization_bank_rule
-		doc.budget_balance_type = budget_balance_type
+		# Если новая запись и сумма 0, тогда не создаем
+		if total == 0:
+			return
+		doc = frappe.get_doc(
+			{
+				"doctype": "Movements of Budget Operations",
+				"date": target_date,
+				"organization_bank_rule": organization_bank_rule,
+				"budget_balance_type": budget_balance_type,
+				"sum": total,
+			}
+		)
+		doc.insert()
 
-	# 4) В обоих случаях обновляем/устанавливаем поля
-	doc.sum = flt(sum or 0)
 
-	# 5) Сохраняем
-	doc.save()
+def get_unique_dates(doctypes, start_boundary, organization_bank_rule_name):
+	"""
+	Возвращает отсортированный список уникальных дат из указанных doctype'ов.
+	"""
+	all_dates = []
+	for dt in doctypes:
+		all_dates.append(
+			frappe.get_all(
+				dt,
+				filters=[
+					["date", ">=", start_boundary],
+					["organization_bank_rule", "=", organization_bank_rule_name],
+				],
+				pluck="date",
+				distinct=True,
+			)
+		)
+	# flatten, убрать дубли и отсортировать
+	unique_dates = sorted(set(chain.from_iterable(all_dates)))
+	return unique_dates
 
 
-def calculate_movements_of_budget_operations(organization_bank_rule_name, target_date):
-	# BUG: Двойной пересчет из-за создания двойных строк с одной датой (Только для дней, с которыми еще не было взаимодействия)
-	today = datetime.now(pytz.timezone("Europe/Moscow")).date()
-	target_date = (
-		datetime.strptime(target_date, "%Y-%m-%d").date() if isinstance(target_date, str) else target_date
-	)
-	# Если target_date в будущем — используем в качестве точки входа сегодня, иначе — сам target_date
-	start_boundary = today if target_date > today else target_date
+CALC_MAP = {
+	"Balance": (
+		calculate_balance_type_movement_of_budget_operations,
+		"current_budget_operations_balances",
+	),
+	"Movement": (
+		calculate_movement_type_movement_of_budget_operations,
+		"current_budget_operations_movements",
+	),
+	"Transfer": (
+		calculate_transfer_type_movement_of_budget_operations,
+		"current_budget_operations_transfers",
+	),
+	"Remaining": (
+		calculate_remaining_type_movement_of_budget_operations,
+		"current_budget_operations_remainings",
+	),
+}
 
-	# 1) Берём все даты операций начиная от start_boundary
-	date_objs = frappe.get_all(
-		"Budget Operations",
-		filters=[
-			["date", ">=", start_boundary],
-			["organization_bank_rule", "=", organization_bank_rule_name],
-		],
-		pluck="date",
-		distinct=True,
-	)
-	# 2) Сортируем (pluck уже отдаёт date-объекты)
-	date_objs.sort()
 
-	if not date_objs:
-		return
+def build_full_date_range(
+	raw_target_date, organization_bank_rule_name, compute_all=False, min_target_data=None
+):
+	# 1) today в Московской таймзоне
+	tz = pytz.timezone("Europe/Moscow")
+	today = datetime.now(tz).date()
+	if min_target_data is None:
+		min_target_data = today
 
-	# 3) Определяем фактический интервал:
-	#    сначала — либо самая ранняя дата операций, либо today (если все операции «в будущем»)
-	first_date = date_objs[0] if date_objs[0] <= today else today
-	last_date = date_objs[-1]
+	# 2) парсим target_date или, если выдаст None, сразу ставим today
+	target_date = getdate(raw_target_date) or today
 
-	# 4) Строим полный список подряд идущих дат от first_date до last_date включительно
-	full_dates = [first_date + timedelta(days=offset) for offset in range((last_date - first_date).days + 1)]
+	# 3) граница в БД — минимальная из двух (если target_date > today, вернётся today)
+	start_boundary = min(target_date, today, min_target_data)
 
-	# 5) И ещё один день после последнего (ваша старая логика)
-	full_dates.append(last_date + timedelta(days=1))
+	if compute_all:
+		sources_data = ["Budget Operations", "Movements of Budget Operations"]
+		# 4) получаем все даты из двух doctype'ов
+		dates_from_db = get_unique_dates(sources_data, start_boundary, organization_bank_rule_name)
+
+		# 5) объединяем с today и target_date, убираем дубли и сортируем
+		all_dates = sorted(set(dates_from_db) | {today, target_date})
+	else:
+		sources_data = ["Budget Operations"]
+		all_dates = [min_target_data, target_date]
+		all_dates.sort()
+
+	# 6) первый и последний дни
+	first_date = all_dates[0] if all_dates[0] <= today else today
+	last_date = all_dates[-1]
+
+	# 7) строим полный интервал и добавляем ещё один день после last_date
+	full_dates = [first_date + timedelta(days=i) for i in range((last_date - first_date).days + 1)]
+
+	return full_dates
+
+
+def calculate_movements_of_budget_operations(
+	organization_bank_rule_name, target_date, compute_all=False, min_target_data=None
+):
+	full_dates = build_full_date_range(target_date, organization_bank_rule_name, compute_all, min_target_data)
 
 	for selected_date in full_dates:
-		# вычислили и сохранили
-		calculated_balance_type = calculate_balance_type_movement_of_budget_operations(
-			organization_bank_rule_name, selected_date
-		)
-
-		save_movement_of_budget_operations(
-			selected_date,
-			organization_bank_rule_name,
-			calculated_balance_type["current_budget_operations_balances"],
-			"Balance",
-		)
-
-		calculated_movement_type = calculate_movement_type_movement_of_budget_operations(
-			organization_bank_rule_name, selected_date
-		)
-
-		save_movement_of_budget_operations(
-			selected_date,
-			organization_bank_rule_name,
-			calculated_movement_type["current_budget_operations_movements"],
-			"Movement",
-		)
-
-		calculated_transfer_type = calculate_transfer_type_movement_of_budget_operations(
-			organization_bank_rule_name, selected_date
-		)
-
-		save_movement_of_budget_operations(
-			selected_date,
-			organization_bank_rule_name,
-			calculated_transfer_type["current_budget_operations_transfers"],
-			"Transfer",
-		)
-
-		calculated_remaining_type = calculate_remaining_type_movement_of_budget_operations(
-			organization_bank_rule_name, selected_date
-		)
-		save_movement_of_budget_operations(
-			selected_date,
-			organization_bank_rule_name,
-			calculated_remaining_type["current_budget_operations_remainings"],
-			"Remaining",
-		)
+		for label, (calc_fn, result_key) in CALC_MAP.items():
+			data = calc_fn(organization_bank_rule_name, selected_date)
+			save_movement_of_budget_operations(
+				selected_date,
+				organization_bank_rule_name,
+				data[result_key],
+				label,
+			)
 
 
 # def publish_budget_change_by_update_budget_operation(doc, method):
@@ -1240,7 +1300,7 @@ def publish_budget_change_by_update_expense_item(doc, method):
 			)
 			for budget_operation in all_budget_operations:
 				calculate_movements_of_budget_operations(
-					budget_operation.recipient_of_transit_payment, budget_operation.date
+					budget_operation.recipient_of_transit_payment, budget_operation.date, True
 				)
 				publish_budget_change(budget_operation.recipient_of_transit_payment)
 		publish_budget_change(rule.name)
