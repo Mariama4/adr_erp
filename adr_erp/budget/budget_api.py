@@ -1145,20 +1145,19 @@ def calculate_movements_of_budget_operations(organization_bank_rule_name, target
 		)
 
 
-def publish_budget_change_by_update_budget_operation(doc, method):
-	...
-	# organization_bank_rule_name = doc.get("organization_bank_rule")
-	# if not organization_bank_rule_name:
-	# 	return
-	# calculate_movements_of_budget_operations(organization_bank_rule_name, doc.date)
-	# # Вызываем пересчет у того, кому сделали перевод
+# def publish_budget_change_by_update_budget_operation(doc, method):
+# 	organization_bank_rule_name = doc.get("organization_bank_rule")
+# 	if not organization_bank_rule_name:
+# 		return
+# 	calculate_movements_of_budget_operations(organization_bank_rule_name, doc.date)
+# 	# Вызываем пересчет у того, кому сделали перевод
 
-	# if doc.expense_item != "":
-	# 	doc_expense_item = frappe.get_doc("Expense Items", doc.expense_item)
-	# 	if doc_expense_item.is_transit and doc.recipient_of_transit_payment != "":
-	# 		calculate_movements_of_budget_operations(doc.recipient_of_transit_payment, doc.date)
-	# 		publish_budget_change(doc.recipient_of_transit_payment)
-	# publish_budget_change(organization_bank_rule_name)
+# 	if doc.expense_item != "":
+# 		doc_expense_item = frappe.get_doc("Expense Items", doc.expense_item)
+# 		if doc_expense_item.is_transit and doc.recipient_of_transit_payment != "":
+# 			calculate_movements_of_budget_operations(doc.recipient_of_transit_payment, doc.date)
+# 			publish_budget_change(doc.recipient_of_transit_payment)
+# 	publish_budget_change(organization_bank_rule_name)
 
 
 def get_autoname_pattern(doctype):

@@ -161,10 +161,10 @@ doc_events = {
 		"on_update": "adr_erp.budget.budget_api.publish_budget_change_by_update_organization_bank_rule",
 		"on_trash": "adr_erp.budget.budget_api.publish_budget_change_by_trash_organization_bank_rule",
 	},
-	"Budget Operations": {
-		"on_update": "adr_erp.budget.budget_api.publish_budget_change_by_update_budget_operation",
-		"on_trash": "adr_erp.budget.budget_api.publish_budget_change_by_update_budget_operation",
-	},
+	# "Budget Operations": {
+	# 	"on_update": "adr_erp.budget.budget_api.publish_budget_change_by_update_budget_operation",
+	# 	"on_trash": "adr_erp.budget.budget_api.publish_budget_change_by_update_budget_operation",
+	# },
 }
 
 # Scheduled Tasks
