@@ -174,7 +174,7 @@ scheduler_events = {
 	# 	"all": [
 	# 		"adr_erp.tasks.all"
 	# 	],
-	"daily": ["adr_erp.tasks.prepare_budget_movement_data"],
+	"daily": ["adr_erp.adr_erp.tasks.prepare_budget_movement_data"],
 	# 	"hourly": [
 	# 		"adr_erp.tasks.hourly"
 	# 	],
