@@ -1294,7 +1294,10 @@ def publish_budget_change_by_update_expense_item(doc, method):
 		if doc.is_transit and rule.recipient_of_transit_payment != "":
 			all_budget_operations = frappe.get_all(
 				"Budget Operations",
-				filters={"organization_bank_rule": rule.name},
+				filters=[
+					["organization_bank_rule", "=", rule.name],
+					["recipient_of_transit_payment", "!=", ""],  # только заполненные
+				],
 				fields=["date", "recipient_of_transit_payment"],
 				distinct=True,
 			)
