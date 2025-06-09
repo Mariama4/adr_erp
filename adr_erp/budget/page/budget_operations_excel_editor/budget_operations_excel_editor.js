@@ -102,6 +102,7 @@ const PageContent = Class.extend({
 							window.current_number_of_days_select,
 							true
 						);
+						loadComment();
 						frappe.show_alert({
 							message: __("Data updated"),
 							indicator: "blue",
@@ -130,6 +131,27 @@ const PageContent = Class.extend({
 						});
 					},
 				});
+
+				// Функция загрузки комментария из БД
+				const loadComment = () => {
+					frappe.db
+						.get_value(
+							"Organization-Bank Rules",
+							window.current_organization_bank_rules_select,
+							"comment"
+						)
+						.then(({ message }) => {
+							$(document).find(".page-form .page-only-label")?.remove();
+							this.page.add_label(
+								message && message.comment ? message.comment : __("No comment")
+							);
+							$(document)
+								.find(".page-form .page-only-label")
+								?.removeClass("col-md-1");
+						});
+				};
+
+				loadComment();
 			});
 
 		// Рендерим шаблон страницы (если есть необходимость оформления через шаблон)
