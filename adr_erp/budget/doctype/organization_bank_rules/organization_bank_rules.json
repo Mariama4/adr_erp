@@ -9,7 +9,8 @@
   "organization",
   "bank",
   "available_expense_items",
-  "status_timeline"
+  "status_timeline",
+  "comment"
  ],
  "fields": [
   {
@@ -39,12 +40,17 @@
    "fieldtype": "Table",
    "label": "Status Timeline",
    "options": "Organization-Bank Rule Status Timeline"
+  },
+  {
+   "fieldname": "comment",
+   "fieldtype": "Data",
+   "label": "Comment"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-05-27 14:24:08.082363",
+ "modified": "2025-06-09 16:43:22.078474",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Organization-Bank Rules",
