@@ -212,7 +212,7 @@ const PageContent = Class.extend({
 										{
 											label: __("Comment FL Percent"),
 											fieldname: "comment_fl_percent",
-											fieldtype: "Float",
+											fieldtype: "Percent",
 											default: doc.comment_fl_percent || 0,
 										},
 										{
@@ -224,7 +224,7 @@ const PageContent = Class.extend({
 										{
 											label: __("Comment NR Percent"),
 											fieldname: "comment_nr_percent",
-											fieldtype: "Float",
+											fieldtype: "Percent",
 											default: doc.comment_nr_percent || 0,
 										},
 										{
@@ -236,7 +236,7 @@ const PageContent = Class.extend({
 										{
 											label: __("Comment UL Percent"),
 											fieldname: "comment_ul_percent",
-											fieldtype: "Float",
+											fieldtype: "Percent",
 											default: doc.comment_ul_percent || 0,
 										},
 										{
@@ -248,7 +248,7 @@ const PageContent = Class.extend({
 										{
 											label: __("Comment IP Percent"),
 											fieldname: "comment_ip_percent",
-											fieldtype: "Float",
+											fieldtype: "Percent",
 											default: doc.comment_ip_percent || 0,
 										},
 										{
@@ -260,7 +260,7 @@ const PageContent = Class.extend({
 										{
 											label: __("Services"),
 											fieldname: "comment_services",
-											fieldtype: "Small Text",
+											fieldtype: "Data",
 											default: doc.comment_services || "",
 										},
 									],
