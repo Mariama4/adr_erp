@@ -138,13 +138,33 @@ const PageContent = Class.extend({
 						.get_value(
 							"Organization-Bank Rules",
 							window.current_organization_bank_rules_select,
-							"comment"
+							[
+								"comment_fl_sum",
+								"comment_fl_percent",
+								"comment_nr_sum",
+								"comment_nr_percent",
+								"comment_ul_sum",
+								"comment_ul_percent",
+								"comment_ip_sum",
+								"comment_ip_percent",
+								"comment_is_sp_connected",
+								"comment_services",
+							]
 						)
 						.then(({ message }) => {
 							$(document).find(".page-form .page-only-label")?.remove();
-							this.page.add_label(
-								message && message.comment ? message.comment : __("No comment")
-							);
+							let comment = `ЗП ${
+								message.comment_is_sp_connected ? "✅" : "❌"
+							}| мин. ФЛ ${message.comment_fl_sum || 0} / ${
+								message.comment_fl_percent || 0
+							} %| ИП ${message.comment_ip_sum || 0} / ${
+								message.comment_ip_percent || 0
+							} %| ЮЛ ${message.comment_ul_sum || 0} / ${
+								message.comment_ul_percent || 0
+							} %| НР ${message.comment_nr_sum || 0} / ${
+								message.comment_nr_percent || 0
+							} %| Сервисы: ${message.comment_services || ""}`;
+							this.page.add_label(message ? comment : __("No comment"));
 							$(document)
 								.find(".page-form .page-only-label")
 								?.removeClass("col-md-1");

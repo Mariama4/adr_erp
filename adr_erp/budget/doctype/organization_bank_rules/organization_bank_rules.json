@@ -10,7 +10,23 @@
   "bank",
   "available_expense_items",
   "status_timeline",
-  "comment"
+  "additional_fields_section",
+  "fl",
+  "comment_fl_sum",
+  "comment_fl_percent",
+  "nr",
+  "comment_nr_sum",
+  "comment_nr_percent",
+  "column_break_edch",
+  "ul",
+  "comment_ul_sum",
+  "comment_ul_percent",
+  "ip",
+  "comment_ip_sum",
+  "comment_ip_percent",
+  "section_break_kfot",
+  "comment_is_sp_connected",
+  "comment_services"
  ],
  "fields": [
   {
@@ -42,15 +58,94 @@
    "options": "Organization-Bank Rule Status Timeline"
   },
   {
-   "fieldname": "comment",
+   "fieldname": "comment_fl_sum",
+   "fieldtype": "Float",
+   "label": "Comment fl sum"
+  },
+  {
+   "fieldname": "comment_fl_percent",
+   "fieldtype": "Percent",
+   "label": "Comment fl percent"
+  },
+  {
+   "fieldname": "additional_fields_section",
+   "fieldtype": "Section Break",
+   "label": "Additional fields"
+  },
+  {
+   "fieldname": "fl",
+   "fieldtype": "Heading",
+   "label": "FL"
+  },
+  {
+   "fieldname": "nr",
+   "fieldtype": "Heading",
+   "label": "NR"
+  },
+  {
+   "fieldname": "comment_nr_sum",
+   "fieldtype": "Float",
+   "label": "Comment nr sum"
+  },
+  {
+   "fieldname": "comment_nr_percent",
+   "fieldtype": "Percent",
+   "label": "Comment nr percent"
+  },
+  {
+   "fieldname": "column_break_edch",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "ul",
+   "fieldtype": "Heading",
+   "label": "UL"
+  },
+  {
+   "fieldname": "comment_ul_sum",
+   "fieldtype": "Float",
+   "label": "Comment ul sum"
+  },
+  {
+   "fieldname": "comment_ul_percent",
+   "fieldtype": "Percent",
+   "label": "Comment ul percent"
+  },
+  {
+   "fieldname": "ip",
+   "fieldtype": "Heading",
+   "label": "IP"
+  },
+  {
+   "fieldname": "comment_ip_sum",
+   "fieldtype": "Float",
+   "label": "Comment ip sum"
+  },
+  {
+   "fieldname": "comment_ip_percent",
+   "fieldtype": "Percent",
+   "label": "Comment ip percent"
+  },
+  {
+   "fieldname": "section_break_kfot",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "comment_is_sp_connected",
+   "fieldtype": "Check",
+   "label": "Is the salary project connected?"
+  },
+  {
+   "fieldname": "comment_services",
    "fieldtype": "Data",
-   "label": "Comment"
+   "label": "Services"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-09 16:43:22.078474",
+ "modified": "2025-06-10 18:27:59.685681",
  "modified_by": "Administrator",
  "module": "Budget",
  "name": "Organization-Bank Rules",
