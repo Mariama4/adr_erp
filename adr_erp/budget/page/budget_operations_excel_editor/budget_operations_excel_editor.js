@@ -171,6 +171,136 @@ const PageContent = Class.extend({
 						});
 				};
 
+				// Добавляем кнопку для открытия формы Organization bank rule в popup
+				this.page.add_button(__("Edit Rule Comments"), () => {
+					if (!window.current_organization_bank_rules_select) {
+						frappe.msgprint(__("No Organization Bank Rule selected."));
+						return;
+					}
+
+					// Загружаем только нужные поля
+					frappe.call({
+						method: "frappe.client.get",
+						args: {
+							doctype: "Organization-Bank Rules",
+							name: window.current_organization_bank_rules_select,
+							fields: [
+								"comment_fl_sum",
+								"comment_fl_percent",
+								"comment_nr_sum",
+								"comment_nr_percent",
+								"comment_ul_sum",
+								"comment_ul_percent",
+								"comment_ip_sum",
+								"comment_ip_percent",
+								"comment_is_sp_connected",
+								"comment_services",
+							],
+						},
+						callback: (r) => {
+							if (r.message) {
+								const doc = r.message; // Текущие значения документа
+								const dialog = new frappe.ui.Dialog({
+									title: __("Edit Comments for: {0}", [doc.name]),
+									fields: [
+										{
+											label: __("Comment FL Sum"),
+											fieldname: "comment_fl_sum",
+											fieldtype: "Float",
+											default: doc.comment_fl_sum || 0,
+										},
+										{
+											label: __("Comment FL Percent"),
+											fieldname: "comment_fl_percent",
+											fieldtype: "Float",
+											default: doc.comment_fl_percent || 0,
+										},
+										{
+											label: __("Comment NR Sum"),
+											fieldname: "comment_nr_sum",
+											fieldtype: "Float",
+											default: doc.comment_nr_sum || 0,
+										},
+										{
+											label: __("Comment NR Percent"),
+											fieldname: "comment_nr_percent",
+											fieldtype: "Float",
+											default: doc.comment_nr_percent || 0,
+										},
+										{
+											label: __("Comment UL Sum"),
+											fieldname: "comment_ul_sum",
+											fieldtype: "Float",
+											default: doc.comment_ul_sum || 0,
+										},
+										{
+											label: __("Comment UL Percent"),
+											fieldname: "comment_ul_percent",
+											fieldtype: "Float",
+											default: doc.comment_ul_percent || 0,
+										},
+										{
+											label: __("Comment IP Sum"),
+											fieldname: "comment_ip_sum",
+											fieldtype: "Float",
+											default: doc.comment_ip_sum || 0,
+										},
+										{
+											label: __("Comment IP Percent"),
+											fieldname: "comment_ip_percent",
+											fieldtype: "Float",
+											default: doc.comment_ip_percent || 0,
+										},
+										{
+											label: __("Is SP Connected"),
+											fieldname: "comment_is_sp_connected",
+											fieldtype: "Check",
+											default: doc.comment_is_sp_connected || 0,
+										},
+										{
+											label: __("Services"),
+											fieldname: "comment_services",
+											fieldtype: "Small Text",
+											default: doc.comment_services || "",
+										},
+									],
+									primary_action_label: __("Save"),
+									primary_action: (values) => {
+										// `values` содержит данные из полей диалога
+										frappe.call({
+											method: "frappe.client.set_value",
+											args: {
+												doctype: "Organization-Bank Rules",
+												name: doc.name, // Имя текущего документа
+												fieldname: values, // Объект с обновленными полями
+											},
+											callback: (response) => {
+												if (response.message) {
+													frappe.show_alert({
+														message: __(
+															"Comments updated successfully."
+														),
+														indicator: "green",
+													});
+													dialog.hide();
+													loadComment(); // Перезагрузить комментарий на основной странице
+												} else {
+													frappe.msgprint(
+														__("Error updating comments.")
+													);
+												}
+											},
+										});
+									},
+								});
+								dialog.show();
+							} else {
+								frappe.msgprint(__("Could not load Organization Bank Rule."));
+							}
+						},
+					});
+				});
+
 				loadComment();
 			});
 
