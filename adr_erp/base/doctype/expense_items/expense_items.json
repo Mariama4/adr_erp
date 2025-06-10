@@ -11,7 +11,8 @@
   "allowed_external_recipients",
   "is_transit",
   "is_read_only",
-  "is_vat"
+  "is_vat",
+  "days_metric"
  ],
  "fields": [
   {
@@ -56,12 +57,19 @@
    "fieldtype": "Table MultiSelect",
    "label": "Allowed External Recipients",
    "options": "Link External Recipients"
+  },
+  {
+   "default": "90",
+   "fieldname": "days_metric",
+   "fieldtype": "Int",
+   "label": "Days Metric",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-09 19:09:09.040402",
+ "modified": "2025-06-10 15:40:10.016564",
  "modified_by": "Administrator",
  "module": "Base",
  "name": "Expense Items",

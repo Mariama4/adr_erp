@@ -80,7 +80,7 @@ def get_bank_rules():
 	return [br["name"] for br in bank_rules]
 
 
-def get_available_expense_items(org_bank_rule_name):
+def get_available_expense_items(org_bank_rule_name, selected_entry_type=None):
 	"""
 	Получает список доступных expense item'ов из документа Organization-Bank Rules.
 	"""
@@ -95,6 +95,9 @@ def get_available_expense_items(org_bank_rule_name):
 				"External Recipients", allowed_external_recipient.external_recipient_item
 			)
 			allowed_external_recipients.append(external_recipient_doc.name)
+		if selected_entry_type is not None:
+			if expense_doc.entry_type != selected_entry_type:
+				continue
 		available_items.append(
 			{
 				"name": expense_doc.name,
@@ -102,6 +105,7 @@ def get_available_expense_items(org_bank_rule_name):
 				"entry_type": expense_doc.entry_type,
 				"is_read_only": expense_doc.is_read_only,
 				"allowed_external_recipients": allowed_external_recipients,
+				"days_metric": expense_doc.days_metric,
 			}
 		)
 	available_items.sort(key=lambda x: x["entry_type"], reverse=True)
@@ -430,9 +434,185 @@ def fill_days_statuses(organization_bank_rule_name, dates):
 	return result
 
 
+def calculate_today_expense_item_movement(organization_bank_rule_name, expense_item_name, today):
+	result = 0
+	grouped_budget_operations = frappe.get_all(
+		"Budget Operations",
+		filters=[
+			["organization_bank_rule", "=", organization_bank_rule_name],
+			["expense_item", "=", expense_item_name],
+			["date", "=", today],
+			["sum", ">", 0],
+		],
+		fields=[
+			"expense_item",
+			"group_index",
+		],
+		distinct=True,
+	)
+	for group_budget_operation in grouped_budget_operations:
+		budget_operations = frappe.get_all(
+			"Budget Operations",
+			filters=[
+				["organization_bank_rule", "=", organization_bank_rule_name],
+				["date", "=", today],
+				["sum", ">", 0],
+				["expense_item", "=", group_budget_operation.expense_item],
+				["group_index", "=", group_budget_operation.group_index],
+			],
+			fields=[
+				"name",
+				"date",
+				"budget_operation_type",
+				"organization_bank_rule",
+				"sum",
+				"expense_item",
+				"recipient_of_transit_payment",
+				"group_index",
+			],
+		)
+		allowed_budget_operation_type = (
+			"Факт"
+			if any(
+				[budget_operation.budget_operation_type == "Факт" for budget_operation in budget_operations]
+			)
+			is True
+			else "План"
+		)
+		for budget_operation in budget_operations:
+			if budget_operation.budget_operation_type == allowed_budget_operation_type:
+				entry_type = frappe.get_value("Expense Items", budget_operation.expense_item, "entry_type")
+				if entry_type in ["Debit", _("Debit")]:
+					result += budget_operation.sum
+				elif entry_type in ["Credit", _("Credit")]:
+					result -= budget_operation.sum
+
+	return result
+
+
+def calculate_expense_item_metric(item_name, days_metric, organization_bank_rule_name):
+	DAYS = int(days_metric)
+	today = datetime.now(pytz.timezone("Europe/Moscow")).date()
+	start_date = today - timedelta(days=DAYS)
+	sum_a = 0
+	sum_b = 0
+	sum_c = 0
+
+	# (sum_a) Берем сумму значений операций по бюджету назад до days_metric от текущего дня и текущий день и все доступные дни после
+	sum_a_before = (
+		frappe.db.get_value(
+			"Budget Operations",
+			filters=[
+				["organization_bank_rule", "=", organization_bank_rule_name],
+				["budget_operation_type", "=", "Факт"],
+				["expense_item", "=", item_name],
+				["date", ">=", start_date.strftime("%Y-%m-%d")],
+				["date", "<", today.strftime("%Y-%m-%d")],
+			],
+			fieldname="SUM(sum)",
+		)
+		or 0
+	)
+
+	sum_a_today = (
+		calculate_today_expense_item_movement(
+			organization_bank_rule_name, item_name, today.strftime("%Y-%m-%d")
+		)
+		or 0
+	)
+
+	sum_a_after = (
+		frappe.db.get_value(
+			"Budget Operations",
+			filters=[
+				["organization_bank_rule", "=", organization_bank_rule_name],
+				["budget_operation_type", "=", "План"],
+				["expense_item", "=", item_name],
+				["date", ">", today.strftime("%Y-%m-%d")],
+			],
+			fieldname="SUM(sum)",
+		)
+		or 0
+	)
+	sum_a = sum_a_before + sum_a_today + sum_a_after
+	sum_a = abs(sum_a)
+
+	# (sum_b) Берем сумму дохода так же
+	# сначала считаем до, дотом за день, потом после
+
+	debit_expense_items = get_available_expense_items(organization_bank_rule_name, "Debit")
+	for debit_expense_item in debit_expense_items:
+		sum_b_before = (
+			frappe.db.get_value(
+				"Budget Operations",
+				filters=[
+					["organization_bank_rule", "=", organization_bank_rule_name],
+					["budget_operation_type", "=", "Факт"],
+					["expense_item", "=", debit_expense_item["name"]],
+					["date", ">=", start_date.strftime("%Y-%m-%d")],
+					["date", "<", today.strftime("%Y-%m-%d")],
+				],
+				fieldname="SUM(sum)",
+			)
+			or 0
+		)
+
+		sum_b_today = (
+			calculate_today_expense_item_movement(
+				organization_bank_rule_name, debit_expense_item["name"], today.strftime("%Y-%m-%d")
+			)
+			or 0
+		)
+
+		sum_b_after = (
+			frappe.db.get_value(
+				"Budget Operations",
+				filters=[
+					["organization_bank_rule", "=", organization_bank_rule_name],
+					["budget_operation_type", "=", "План"],
+					["expense_item", "=", debit_expense_item["name"]],
+					["date", ">", today.strftime("%Y-%m-%d")],
+				],
+				fieldname="SUM(sum)",
+			)
+			or 0
+		)
+		sum_b += sum_b_before + sum_b_today + sum_b_after
+
+	# (sum_c) Берем сумму транзита так же
+	sum_c = (
+		frappe.db.get_value(
+			"Movements of Budget Operations",
+			filters=[
+				["organization_bank_rule", "=", organization_bank_rule_name],
+				["budget_balance_type", "=", "Transfer"],
+				["date", ">=", start_date.strftime("%Y-%m-%d")],
+			],
+			fieldname="SUM(sum)",
+		)
+		or 0
+	)
+
+	_sum_bc = sum_b + sum_c
+
+	sum_bc = 1 if _sum_bc == 0 else _sum_bc
+
+	result = (sum_a / sum_bc) or 0
+	# sum_a / (sum_b + sum_c) = N%
+
+	return f"{result:.2f} %"
+
+
 @frappe.whitelist()
 def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number_of_days):
-	result = {"data": [], "colHeaders": [], "columns": [], "operationTypeNames": [], "daysStatuses": {}}
+	result = {
+		"data": [],
+		"colHeaders": [],
+		"nestedHeaders": [],
+		"columns": [],
+		"operationTypeNames": [],
+		"daysStatuses": {},
+	}
 
 	DAYS = int(number_of_days)
 	today = date.today()
@@ -450,6 +630,25 @@ def get_budget_plannig_data_for_handsontable(organization_bank_rule_name, number
 
 	# Заголовки и колонки
 	colHeaders, columns = build_columns_and_headers(types, items, rules)
+	result["nestedHeaders"].append({"label": _("Metrics"), "colspan": 7})
+	_nestedHeadersTemp = colHeaders[7:]
+
+	for item in items:
+		colspan = len(list(filter(lambda x: item["name"] in x, _nestedHeadersTemp)))
+		if item["entry_type"] == "Credit":
+			result["nestedHeaders"].append(
+				{
+					"label": str(
+						calculate_expense_item_metric(
+							item["name"], item["days_metric"], organization_bank_rule_name
+						)
+					),
+					"colspan": colspan,
+				}
+			)
+		else:
+			result["nestedHeaders"].append({"label": item["name"], "colspan": colspan})
+
 	result.update({"colHeaders": colHeaders, "columns": columns, "operationTypeNames": types})
 	idx_map = build_field_to_index(columns)
 	num_cols = len(columns)

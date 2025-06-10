@@ -377,6 +377,7 @@ function initHandsontableInstance(message, organization_bank_rule_name, force_re
 		),
 		rowHeights: 30,
 		colHeaders: message.colHeaders,
+		nestedHeaders: [message.nestedHeaders, message.colHeaders],
 		mergeCells: mergeCells,
 		width: width,
 		height: height,
