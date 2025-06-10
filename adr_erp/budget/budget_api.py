@@ -598,6 +598,7 @@ def calculate_expense_item_metric(item_name, days_metric, organization_bank_rule
 	sum_bc = 1 if _sum_bc == 0 else _sum_bc
 
 	result = (sum_a / sum_bc) or 0
+	result *= 100
 	# sum_a / (sum_b + sum_c) = N%
 
 	return f"{result:.2f} %"
