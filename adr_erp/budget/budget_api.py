@@ -1519,3 +1519,45 @@ def publish_budget_change_by_rename_organization_bank_rule(doc, method, after_re
 
 def publish_budget_change_by_trash_organization_bank_rule(doc, method):
 	publish_budget_page_refresh()
+
+
+@frappe.whitelist()
+def get_organization_bank_rules_for_link(doctype, txt, searchfield, start, page_len, filters=None):
+	"""
+	Custom query for Link field to fetch Organization-Bank Rules with paging.
+	"""
+	# Подготовим значение для LIKE-поиска
+	search_value = f"%{txt}%" if txt else "%"
+
+	# Собираем фильтры: сначала те, что пришли из клиента, потом наш searchfield LIKE
+	# filters может прийти как dict или список
+	flt = []
+	if isinstance(filters, str):
+		# клиент может передать JSON-строку
+		import json
+
+		try:
+			flt = json.loads(filters)
+		except ValueError:
+			flt = []
+	elif isinstance(filters, dict):
+		# превращаем в список вида [[key, "=", val], …]
+		flt = [[k, "=", v] for k, v in filters.items()]
+	elif isinstance(filters, list):
+		flt = filters.copy()
+
+	# Добавляем поиск по подстроке
+	flt.append([searchfield, "like", search_value])
+
+	# Выполняем запрос с правильными параметрами paging
+	rules = frappe.db.get_list(
+		"Organization-Bank Rules",
+		filters=flt,
+		fields=["name"],
+		order_by="creation asc",
+		limit_start=start,
+		limit_page_length=page_len,
+	)
+
+	# Link-Query ожидает список [value, description]
+	return [[r.name, ""] for r in rules]

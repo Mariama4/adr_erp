@@ -91,11 +91,12 @@ const PageContent = Class.extend({
 					fieldname: "organization_bank_rules_select",
 					options: "Organization-Bank Rules", // DocType, из которого берём значения
 					default: window.current_organization_bank_rules_select,
+					only_select: true,
 					get_query: function () {
 						return {
-							filters: {},
-							limit_page_length: 100,
-							order_by: "creation asc", // Вы также можете контролировать сортировку
+							query: "adr_erp.budget.budget_api.get_organization_bank_rules_for_link",
+							filters: {}, // Здесь можно передать дополнительные фильтры, если они нужны в Python-методе
+							limit_page_length: 100, // Это значение будет передано как page_len в ваш Python-метод
 						};
 					},
 					change() {
