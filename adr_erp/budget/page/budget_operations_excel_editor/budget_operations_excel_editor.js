@@ -89,14 +89,12 @@ const PageContent = Class.extend({
 					label: __("Organization Bank Rules"),
 					fieldtype: "Link",
 					fieldname: "organization_bank_rules_select",
-					options: "Organization-Bank Rules", // DocType, из которого берём значения
+					options: "Organization-Bank Rules",
 					default: window.current_organization_bank_rules_select,
 					only_select: true,
 					get_query: function () {
 						return {
-							query: "adr_erp.budget.budget_api.get_organization_bank_rules_for_link",
-							filters: {}, // Здесь можно передать дополнительные фильтры, если они нужны в Python-методе
-							limit_page_length: 100, // Это значение будет передано как page_len в ваш Python-метод
+							page_length: 1,
 						};
 					},
 					change() {
