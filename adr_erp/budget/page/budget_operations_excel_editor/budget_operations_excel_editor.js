@@ -91,6 +91,13 @@ const PageContent = Class.extend({
 					fieldname: "organization_bank_rules_select",
 					options: "Organization-Bank Rules", // DocType, из которого берём значения
 					default: window.current_organization_bank_rules_select,
+					get_query: function () {
+						return {
+							filters: {},
+							limit_page_length: 100,
+							order_by: "creation asc", // Вы также можете контролировать сортировку
+						};
+					},
 					change() {
 						if (this.get_value() == "") {
 							return;
