@@ -94,7 +94,7 @@ const PageContent = Class.extend({
 					only_select: true,
 					get_query: function () {
 						return {
-							page_length: 1,
+							page_length: 100,
 						};
 					},
 					change() {
